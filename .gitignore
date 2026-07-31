@@ -1,0 +1,5 @@
+# Local Codex/GStack browser traces and session-specific state
+.gstack/
+
+# Operating-system metadata
+.DS_Store
