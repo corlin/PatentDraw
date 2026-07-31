@@ -79,7 +79,7 @@ invalidated; submit a request lacking authority or source support and verify abs
 - **FR-002**: The system MUST provide source-linked FigurePlan proposals that identify candidate views, components, reference signs, open questions and limitations.
 - **FR-003**: The system MUST mark unsupported, contradictory or unmapped proposed content as `abstained` or `manual-review-required`; it MUST NOT silently complete it.
 - **FR-004**: The system MUST label every AI image as a non-authoritative draft and require a drafter to create a separate canonical SVG revision before normal checks, review or export.
-- **FR-005**: The system MUST record model/provider/version, instruction version, selected-source hashes, consent state, output hashes, source mapping, actor, timestamp and limitations for every AI run.
+- **FR-005**: The system MUST record an immutable request-input hash, model/provider/version, instruction version, selected-source hashes, consent state, output hashes, source mapping, actor, timestamp and limitations for every AI run.
 - **FR-006**: The system MUST invalidate AI mappings and affected reviewer decisions when a selected source, FigurePlan, allowed scope or linked revision changes.
 - **FR-007**: The system MUST prohibit AI outputs from asserting technical correctness, claim coverage, legal sufficiency, rule pass, filing readiness, submission or office acceptance.
 - **FR-008**: The system MUST require recorded authorisation before customer materials are used for an AI request and MUST not use them for training without recorded customer authorisation.

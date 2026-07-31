@@ -1,0 +1,25 @@
+{
+  "name": "patentdraw",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.11.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @patentdraw/web --filter @patentdraw/api dev",
+    "build": "pnpm --recursive run build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint .",
+    "format:check": "prettier --check eslint.config.js prettier.config.cjs tsconfig.base.json tsconfig.json vitest.workspace.ts package.json pnpm-workspace.yaml apps packages",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@sinclair/typebox": "^0.34.41",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^3.2.4"
+  }
+}
