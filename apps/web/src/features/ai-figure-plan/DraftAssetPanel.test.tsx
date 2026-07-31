@@ -22,4 +22,21 @@ describe('DraftAssetPanel', () => {
     expect(html).toContain('cannot be exported');
     expect(html).toContain('export eligible: false');
   });
+
+  it('makes an invalidated draft visibly unusable', () => {
+    const html = renderToStaticMarkup(
+      <DraftAssetPanel
+        job={{
+          id: 'job-fixture-invalidated',
+          status: 'invalidated',
+          progressPercent: 100,
+          asset: fixtureDraftAsset,
+          reason: 'A selected source changed.',
+        }}
+      />,
+    );
+
+    expect(html).toContain('Invalidated');
+    expect(html).toContain('cannot be exported or reused');
+  });
 });

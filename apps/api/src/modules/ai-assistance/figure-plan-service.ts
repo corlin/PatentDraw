@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { AiRun, FigurePlanRequest, FigurePlanResult } from '@patentdraw/contracts';
 
 import { appendAuditEvent, type AuditEvent } from './audit.js';
-import { enforceFigurePlanPolicy } from './figure-plan-policy.js';
+import { assertFigurePlanRequestSecurity, enforceFigurePlanPolicy } from './figure-plan-policy.js';
 import type { FigurePlanProvider } from './provider.js';
 import { assertNoTrainingDataUse } from './provider-policy.js';
 import {
@@ -32,6 +32,7 @@ export async function requestFigurePlan(
     throw new Error('The request project does not match the authenticated project context.');
   }
 
+  assertFigurePlanRequestSecurity(input.request);
   assertAuthorisedSourceSelection({
     context: input.context,
     selectedSources: input.request.selectedSources,

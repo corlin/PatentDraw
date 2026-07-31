@@ -9,6 +9,19 @@ export function DraftAssetPanel({
   onSelect?: () => void;
   onCreateIndependentRevision?: () => void;
 }) {
+  if (job.status === 'invalidated') {
+    return (
+      <section aria-labelledby="draft-asset-heading">
+        <h2 id="draft-asset-heading">Generated draft candidate</h2>
+        <p role="alert">Invalidated: {job.reason ?? 'A dependent source or plan changed.'}</p>
+        <p>
+          This draft remains non-authoritative and cannot be exported or reused until renewed
+          review.
+        </p>
+      </section>
+    );
+  }
+
   if (job.status !== 'ready' || !job.asset) {
     return (
       <p role="status">

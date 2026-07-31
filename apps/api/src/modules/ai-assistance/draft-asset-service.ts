@@ -57,6 +57,11 @@ export function cancelDraftJob(job: DraftJob): DraftJob {
   return { id: job.id, status: 'cancelled', progressPercent: job.progressPercent };
 }
 
+export function invalidateDraftJob(job: DraftJob, reason: string): DraftJob {
+  if (job.status === 'invalidated') return job;
+  return { ...job, status: 'invalidated', reason };
+}
+
 export function selectDraftAsset(job: DraftJob): DraftJob {
   if (job.status !== 'ready' || !job.asset) {
     throw new Error('Only a ready draft asset can be selected.');

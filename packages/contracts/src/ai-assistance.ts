@@ -93,6 +93,7 @@ export const DraftJobStatusSchema = Type.Union([
   Type.Literal('cancelled'),
   Type.Literal('failed'),
   Type.Literal('refused'),
+  Type.Literal('invalidated'),
 ]);
 
 export const GeneratedDraftAssetSchema = Type.Object({

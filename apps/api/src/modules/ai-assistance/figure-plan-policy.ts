@@ -1,7 +1,33 @@
-import type { AuthorisedSource, FigurePlanProposal, FigurePlanResult } from '@patentdraw/contracts';
+import type {
+  AuthorisedSource,
+  FigurePlanProposal,
+  FigurePlanRequest,
+  FigurePlanResult,
+} from '@patentdraw/contracts';
 
 const FORBIDDEN_ASSERTION =
   /\b(technically correct|claim coverage|legal sufficien|rule pass|filing[- ]ready|submission|office acceptance)\b/i;
+
+const MAX_REQUEST_BYTES = 16_384;
+const MAX_SELECTED_SOURCES = 8;
+const MAX_SCOPE_ITEMS = 20;
+
+export function assertFigurePlanRequestSecurity(request: FigurePlanRequest): void {
+  if (request.selectedSources.length > MAX_SELECTED_SOURCES) {
+    throw new Error(
+      `AI assistance supports at most ${MAX_SELECTED_SOURCES} selected sources per request.`,
+    );
+  }
+  if (
+    request.allowedScope.length > MAX_SCOPE_ITEMS ||
+    request.allowedScope.some((item) => item.length > 160)
+  ) {
+    throw new Error('The requested source scope exceeds the permitted bounded assistance scope.');
+  }
+  if (Buffer.byteLength(JSON.stringify(request), 'utf8') > MAX_REQUEST_BYTES) {
+    throw new Error('The AI assistance request exceeds the permitted size.');
+  }
+}
 
 export function enforceFigurePlanPolicy(
   result: FigurePlanResult,

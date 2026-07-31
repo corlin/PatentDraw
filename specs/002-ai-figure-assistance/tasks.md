@@ -80,10 +80,10 @@ audit record.
 
 ## Phase 6: Pilot gate and hardening
 
-- [ ] T031 [P] Add all six AI fixtures and expected states to `tests/fixtures/ai-assistance-fixtures.test.ts`.
-- [ ] T032 Add provider retry, retention and operational failure controls in `apps/api/src/modules/ai-assistance/provider-policy.ts`.
-- [ ] T033 Add request-size, source-scope and forbidden-assertion security tests in `tests/integration/ai-assistance-security.integration.test.ts`.
-- [ ] T034 Run the FigurePlan-only validation in `specs/002-ai-figure-assistance/quickstart.md` and record results in `specs/002-ai-figure-assistance/pilot-evidence.md`.
+- [X] T031 [P] Add all six AI fixtures and expected states to `tests/fixtures/ai-assistance-fixtures.test.ts`.
+- [X] T032 Add provider retry, retention and operational failure controls in `apps/api/src/modules/ai-assistance/provider-policy.ts`.
+- [X] T033 Add request-size, source-scope and forbidden-assertion security tests in `tests/integration/ai-assistance-security.integration.test.ts`.
+- [X] T034 Run the FigurePlan-only validation in `specs/002-ai-figure-assistance/quickstart.md` and record results in `specs/002-ai-figure-assistance/pilot-evidence.md`.
 
 ## Dependencies and execution order
 
