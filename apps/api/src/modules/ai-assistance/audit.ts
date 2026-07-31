@@ -1,5 +1,8 @@
 export type AuditEventType =
-  'ai-run-created' | 'ai-run-invalidated' | 'source-authorisation-revoked';
+  | 'ai-run-created'
+  | 'ai-run-invalidated'
+  | 'source-authorisation-revoked'
+  | 'reviewer-decision-invalidated';
 
 export interface AuditEvent {
   id: string;

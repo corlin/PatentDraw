@@ -3,6 +3,7 @@ export * from './modules/ai-assistance/audit.js';
 export * from './modules/ai-assistance/draft-asset-service.js';
 export * from './modules/ai-assistance/figure-plan-policy.js';
 export * from './modules/ai-assistance/figure-plan-service.js';
+export * from './modules/ai-assistance/invalidation-service.js';
 export * from './modules/ai-assistance/provider-policy.js';
 export * from './modules/ai-assistance/provider.js';
 export * from './modules/ai-assistance/routes.js';

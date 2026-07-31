@@ -1,6 +1,7 @@
 import {
   DraftAssetRequestSchema,
   FigurePlanRequestSchema,
+  type AiAuditEvent,
   type DraftAssetRequest,
   type FigurePlanRequest,
 } from '@patentdraw/contracts';
@@ -84,4 +85,26 @@ export function registerDraftAssetRoutes(
       message: 'Create and independently review a canonical SVG FigureRevision before export.',
     }),
   );
+}
+
+export function registerAiAuditRoutes(
+  app: FastifyInstance,
+  resolveAuditEvents: (projectId: string) => Promise<readonly AiAuditEvent[]>,
+): void {
+  app.get('/projects/:projectId/ai-audit', async (request, reply) => {
+    const context = request.projectContext;
+    const projectId = (request.params as { projectId?: string }).projectId;
+    if (!context) return reply.code(401).send({ error: 'authenticated-project-context-required' });
+    if (!projectId || projectId !== context.projectId) {
+      return reply.code(403).send({ error: 'project-context-mismatch' });
+    }
+    if (
+      !context.roles.some((role) =>
+        ['technical-reviewer', 'attorney-agent', 'administrator'].includes(role),
+      )
+    ) {
+      return reply.code(403).send({ error: 'ai-audit-reader-role-required' });
+    }
+    return reply.send({ events: await resolveAuditEvents(projectId) });
+  });
 }

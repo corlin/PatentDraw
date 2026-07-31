@@ -126,6 +126,31 @@ export const DraftJobSchema = Type.Object({
   reason: Type.Optional(Type.String({ minLength: 1 })),
 });
 
+export const AiAuditEventSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  eventType: Type.Union([
+    Type.Literal('ai-run-created'),
+    Type.Literal('ai-run-invalidated'),
+    Type.Literal('source-authorisation-revoked'),
+    Type.Literal('reviewer-decision-invalidated'),
+  ]),
+  projectId: Type.String({ minLength: 1 }),
+  actorId: Type.String({ minLength: 1 }),
+  occurredAt: Type.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}T.+Z$' }),
+  targetIds: Type.Array(Type.String({ minLength: 1 })),
+  reason: Type.String({ minLength: 1 }),
+  metadata: Type.Record(Type.String(), Type.String()),
+});
+
+export const AiInvalidationSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  changedTargetId: Type.String({ minLength: 1 }),
+  affectedAiRunIds: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+  actorId: Type.String({ minLength: 1 }),
+  occurredAt: Type.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}T.+Z$' }),
+  reason: Type.String({ minLength: 1 }),
+});
+
 export type ProjectRole = Static<typeof ProjectRoleSchema>;
 export type AssistanceType = Static<typeof AssistanceTypeSchema>;
 export type AuthorisedSource = Static<typeof AuthorisedSourceSchema>;
@@ -140,3 +165,5 @@ export type DraftJobStatus = Static<typeof DraftJobStatusSchema>;
 export type GeneratedDraftAsset = Static<typeof GeneratedDraftAssetSchema>;
 export type DraftAssetRequest = Static<typeof DraftAssetRequestSchema>;
 export type DraftJob = Static<typeof DraftJobSchema>;
+export type AiAuditEvent = Static<typeof AiAuditEventSchema>;
+export type AiInvalidation = Static<typeof AiInvalidationSchema>;

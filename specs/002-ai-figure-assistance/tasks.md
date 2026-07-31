@@ -72,11 +72,11 @@ outputs and reviewer decisions without deleting history.
 scope or FigurePlan and verify every dependent proposal/draft invalidates; inspect the complete
 audit record.
 
-- [ ] T026 [P] [US3] Add invalidation-chain and source-authorisation-revocation integration tests in `tests/integration/ai-invalidation.integration.test.ts`.
-- [ ] T027 [P] [US3] Add audit-view contract tests in `tests/contract/ai-audit.contract.test.ts`.
-- [ ] T028 [US3] Implement dependency invalidation and reviewer-decision invalidation in `apps/api/src/modules/ai-assistance/invalidation-service.ts`.
-- [ ] T029 [US3] Implement an authorised read-only AI audit view route in `apps/api/src/modules/ai-assistance/routes.ts`.
-- [ ] T030 [US3] Build the source/model/consent/limitation audit timeline in `apps/web/src/features/ai-figure-plan/AiAuditTimeline.tsx`.
+- [X] T026 [P] [US3] Add invalidation-chain and source-authorisation-revocation integration tests in `tests/integration/ai-invalidation.integration.test.ts`.
+- [X] T027 [P] [US3] Add audit-view contract tests in `tests/contract/ai-audit.contract.test.ts`.
+- [X] T028 [US3] Implement dependency invalidation and reviewer-decision invalidation in `apps/api/src/modules/ai-assistance/invalidation-service.ts`.
+- [X] T029 [US3] Implement an authorised read-only AI audit view route in `apps/api/src/modules/ai-assistance/routes.ts`.
+- [X] T030 [US3] Build the source/model/consent/limitation audit timeline in `apps/web/src/features/ai-figure-plan/AiAuditTimeline.tsx`.
 
 ## Phase 6: Pilot gate and hardening
 
