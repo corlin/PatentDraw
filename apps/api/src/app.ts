@@ -3,7 +3,9 @@ import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { ProjectContext } from './modules/projects-assets/source-authorisation.js';
 import { registerFigurePlanRoutes } from './modules/ai-assistance/routes.js';
-import type { FigurePlanProvider } from './modules/ai-assistance/provider.js';
+import { registerDraftAssetRoutes } from './modules/ai-assistance/routes.js';
+import type { DraftAssetProvider, FigurePlanProvider } from './modules/ai-assistance/provider.js';
+import type { ConfirmedFigurePlan } from './modules/ai-assistance/draft-asset-service.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -19,6 +21,8 @@ export interface RequestIdentity {
 export interface AppOptions {
   resolveProjectContext?: (identity: RequestIdentity) => Promise<ProjectContext | null>;
   figurePlanProvider?: FigurePlanProvider;
+  draftAssetProvider?: DraftAssetProvider;
+  resolveConfirmedPlan?: (projectId: string, planId: string) => Promise<ConfirmedFigurePlan | null>;
 }
 
 export async function createApp(options: AppOptions = {}): Promise<FastifyInstance> {
@@ -44,6 +48,12 @@ export async function createApp(options: AppOptions = {}): Promise<FastifyInstan
   app.get('/health', async () => ({ status: 'ok' }));
   if (options.figurePlanProvider) {
     registerFigurePlanRoutes(app, options.figurePlanProvider);
+  }
+  if (options.draftAssetProvider && options.resolveConfirmedPlan) {
+    registerDraftAssetRoutes(app, {
+      provider: options.draftAssetProvider,
+      resolveConfirmedPlan: options.resolveConfirmedPlan,
+    });
   }
   return app;
 }

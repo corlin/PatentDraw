@@ -1,5 +1,6 @@
 export * from './app.js';
 export * from './modules/ai-assistance/audit.js';
+export * from './modules/ai-assistance/draft-asset-service.js';
 export * from './modules/ai-assistance/figure-plan-policy.js';
 export * from './modules/ai-assistance/figure-plan-service.js';
 export * from './modules/ai-assistance/provider-policy.js';

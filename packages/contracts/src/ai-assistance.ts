@@ -86,6 +86,46 @@ export const FigurePlanResultSchema = Type.Union([
   }),
 ]);
 
+export const DraftJobStatusSchema = Type.Union([
+  Type.Literal('queued'),
+  Type.Literal('running'),
+  Type.Literal('ready'),
+  Type.Literal('cancelled'),
+  Type.Literal('failed'),
+  Type.Literal('refused'),
+]);
+
+export const GeneratedDraftAssetSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  aiRunId: Type.String({ minLength: 1 }),
+  confirmedPlanId: Type.String({ minLength: 1 }),
+  blobHash: Type.String({ minLength: 1 }),
+  limitationLabel: Type.Literal('non-authoritative-ai-draft'),
+  selectionState: Type.Union([
+    Type.Literal('unselected'),
+    Type.Literal('selected'),
+    Type.Literal('rejected'),
+  ]),
+  exportEligible: Type.Literal(false),
+  independentFigureRevisionId: Type.Optional(Type.String({ minLength: 1 })),
+});
+
+export const DraftAssetRequestSchema = Type.Object({
+  projectId: Type.String({ minLength: 1 }),
+  confirmedPlanId: Type.String({ minLength: 1 }),
+  allowedScope: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+  instructionVersion: Type.String({ minLength: 1 }),
+  consent: ConsentRecordSchema,
+});
+
+export const DraftJobSchema = Type.Object({
+  id: Type.String({ minLength: 1 }),
+  status: DraftJobStatusSchema,
+  progressPercent: Type.Integer({ minimum: 0, maximum: 100 }),
+  asset: Type.Optional(GeneratedDraftAssetSchema),
+  reason: Type.Optional(Type.String({ minLength: 1 })),
+});
+
 export type ProjectRole = Static<typeof ProjectRoleSchema>;
 export type AssistanceType = Static<typeof AssistanceTypeSchema>;
 export type AuthorisedSource = Static<typeof AuthorisedSourceSchema>;
@@ -96,3 +136,7 @@ export type FigurePlanProposal = Static<typeof FigurePlanProposalSchema>;
 export type AiRunStatus = Static<typeof AiRunStatusSchema>;
 export type AiRun = Static<typeof AiRunSchema>;
 export type FigurePlanResult = Static<typeof FigurePlanResultSchema>;
+export type DraftJobStatus = Static<typeof DraftJobStatusSchema>;
+export type GeneratedDraftAsset = Static<typeof GeneratedDraftAssetSchema>;
+export type DraftAssetRequest = Static<typeof DraftAssetRequestSchema>;
+export type DraftJob = Static<typeof DraftJobSchema>;

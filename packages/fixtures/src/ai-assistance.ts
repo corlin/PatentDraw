@@ -1,4 +1,9 @@
-import type { FigurePlanRequest, FigurePlanResult } from '@patentdraw/contracts';
+import type {
+  DraftAssetRequest,
+  FigurePlanRequest,
+  FigurePlanResult,
+  GeneratedDraftAsset,
+} from '@patentdraw/contracts';
 
 export const authorisedFigurePlanRequest: FigurePlanRequest = {
   projectId: 'project-fixture-pump',
@@ -69,4 +74,22 @@ export const refusalFigurePlanResult: FigurePlanResult = {
 export const hallucinatedFigurePlanResult: FigurePlanResult = {
   status: 'manual-review-required',
   reason: 'The requested bearing arrangement is not mapped to a selected source.',
+};
+
+export const fixtureDraftAssetRequest: DraftAssetRequest = {
+  projectId: 'project-fixture-pump',
+  confirmedPlanId: 'proposal-fixture-grounded-01',
+  allowedScope: ['housing', 'impeller'],
+  instructionVersion: 'fixture-draft-instruction-v1',
+  consent: authorisedFigurePlanRequest.consent,
+};
+
+export const fixtureDraftAsset: GeneratedDraftAsset = {
+  id: 'draft-fixture-01',
+  aiRunId: 'run-fixture-draft-01',
+  confirmedPlanId: 'proposal-fixture-grounded-01',
+  blobHash: 'sha256:fixture-draft-asset-01',
+  limitationLabel: 'non-authoritative-ai-draft',
+  selectionState: 'unselected',
+  exportEligible: false,
 };

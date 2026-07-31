@@ -54,12 +54,12 @@ the canonical SVG/review workflow.
 **Independent Test**: Request a fixture draft, select it, and verify it remains ineligible for
 export until a separately created canonical SVG revision exists.
 
-- [ ] T020 [P] [US2] Add generated-draft contract tests in `tests/contract/generated-draft-asset.contract.test.ts`.
-- [ ] T021 [P] [US2] Add draft-ineligibility and draft-to-independent-SVG-handoff integration tests in `tests/integration/generated-draft-asset.integration.test.ts`.
-- [ ] T022 [US2] Add confirmed-plan and draft-asset persistence in `apps/api/src/modules/ai-assistance/migrations/002_generated_draft_assets.sql`.
-- [ ] T023 [US2] Implement cancellable draft-job state, progress reporting, draft request policy and provider adapter gate in `apps/api/src/modules/ai-assistance/draft-asset-service.ts`.
-- [ ] T024 [US2] Add draft-asset request/result routes, export denial and an explicit handoff contract to an independent FigureRevision in `apps/api/src/modules/ai-assistance/routes.ts` and `packages/contracts/src/ai-assistance.ts`.
-- [ ] T025 [US2] Build draft selection, limitation label and handoff UI in `apps/web/src/features/ai-figure-plan/DraftAssetPanel.tsx`.
+- [X] T020 [P] [US2] Add generated-draft contract tests in `tests/contract/generated-draft-asset.contract.test.ts`.
+- [X] T021 [P] [US2] Add draft-ineligibility and draft-to-independent-SVG-handoff integration tests in `tests/integration/generated-draft-asset.integration.test.ts`.
+- [X] T022 [US2] Add confirmed-plan and draft-asset persistence in `apps/api/src/modules/ai-assistance/migrations/002_generated_draft_assets.sql`.
+- [X] T023 [US2] Implement cancellable draft-job state, progress reporting, draft request policy and provider adapter gate in `apps/api/src/modules/ai-assistance/draft-asset-service.ts`.
+- [X] T024 [US2] Add draft-asset request/result routes, export denial and an explicit handoff contract to an independent FigureRevision in `apps/api/src/modules/ai-assistance/routes.ts` and `packages/contracts/src/ai-assistance.ts`.
+- [X] T025 [US2] Build draft selection, limitation label and handoff UI in `apps/web/src/features/ai-figure-plan/DraftAssetPanel.tsx`.
 
 **Checkpoint**: Verify that every selected draft is still a source asset, not an export candidate.
 

@@ -28,3 +28,17 @@ export function assertNoTrainingDataUse(
     );
   }
 }
+
+export function assertDraftProviderGate(input: {
+  mode: 'deterministic-test-double' | 'external';
+  policy: ProviderDataUsePolicy;
+  consent: ConsentRecord;
+  externalProviderEnabled?: boolean | undefined;
+}): void {
+  assertNoTrainingDataUse(input.policy, input.consent);
+  if (input.mode === 'external' && !input.externalProviderEnabled) {
+    throw new ProviderPolicyError(
+      'External image providers are disabled until an explicit pilot gate.',
+    );
+  }
+}
