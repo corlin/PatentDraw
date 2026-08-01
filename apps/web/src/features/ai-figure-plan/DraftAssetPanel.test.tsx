@@ -21,6 +21,7 @@ describe('DraftAssetPanel', () => {
     expect(html).toContain('non-authoritative-ai-draft');
     expect(html).toContain('cannot be exported');
     expect(html).toContain('export eligible: false');
+    expect(html).toContain('sha256:fixture-disclosure-01');
   });
 
   it('makes an invalidated draft visibly unusable', () => {

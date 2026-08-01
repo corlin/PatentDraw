@@ -14,6 +14,31 @@ export function AiAuditTimeline({ events }: { events: readonly AiAuditEvent[] })
               <br />
               Actor: {event.actorId}; time: {event.occurredAt}; targets:{' '}
               {event.targetIds.join(', ')}
+              {event.provenance ? (
+                <dl>
+                  <dt>Provider and model</dt>
+                  <dd>
+                    {event.provenance.provider} / {event.provenance.model} /{' '}
+                    {event.provenance.modelVersion}
+                  </dd>
+                  <dt>Instruction</dt>
+                  <dd>{event.provenance.instructionVersion}</dd>
+                  <dt>Selected source hashes</dt>
+                  <dd>{event.provenance.selectedSourceHashes.join(', ')}</dd>
+                  <dt>Consent</dt>
+                  <dd>{event.provenance.consentRecordId}</dd>
+                  <dt>Input and output hashes</dt>
+                  <dd>
+                    {event.provenance.requestInputHash} / {event.provenance.outputHash}
+                  </dd>
+                  <dt>Limitations</dt>
+                  <dd>{event.provenance.limitationState}</dd>
+                  <dt>Retention expiry</dt>
+                  <dd>{event.provenance.retentionExpiresAt}</dd>
+                </dl>
+              ) : (
+                <p>Non-model event: run provenance is not applicable.</p>
+              )}
             </li>
           ))}
         </ol>

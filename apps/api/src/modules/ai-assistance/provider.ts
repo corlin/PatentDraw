@@ -40,7 +40,7 @@ export class DeterministicDraftAssetProvider implements DraftAssetProvider {
 
   async createDraftAsset(request: DraftAssetRequest): Promise<GeneratedDraftAsset> {
     assertNoTrainingDataUse(this.dataUsePolicy, request.consent);
-    return this.asset;
+    return { ...this.asset, confirmedPlanId: request.confirmedPlanId };
   }
 }
 
@@ -59,6 +59,11 @@ export class DeterministicFigurePlanProvider implements FigurePlanProvider {
 
   async proposeFigurePlan(request: FigurePlanRequest): Promise<FigurePlanResult> {
     assertNoTrainingDataUse(this.dataUsePolicy, request.consent);
-    return this.result;
+    return this.result.status === 'proposed'
+      ? {
+          ...this.result,
+          proposal: { ...this.result.proposal, purpose: request.figurePurpose },
+        }
+      : this.result;
   }
 }

@@ -15,6 +15,7 @@ describe('FigurePlanPanel', () => {
 
     expect(html).toContain('source-fixture-disclosure-01');
     expect(html).toContain('never a final SVG');
+    expect(html).toContain('AI-generated planning aid only');
   });
 
   it('surfaces a manual-review state rather than presenting unsupported content as fact', () => {

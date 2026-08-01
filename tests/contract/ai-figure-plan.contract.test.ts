@@ -1,5 +1,9 @@
 import {
   AiRunSchema,
+  ConfirmFigurePlanRequestSchema,
+  DraftRejectRequestSchema,
+  DraftRetryRequestSchema,
+  FigurePlanDispositionRequestSchema,
   FigurePlanRequestSchema,
   FigurePlanResultSchema,
 } from '../../packages/contracts/src/index.js';
@@ -14,6 +18,11 @@ describe('FigurePlan contract', () => {
   it('accepts a canonical authorised request and a source-mapped proposal', () => {
     expect(Value.Check(FigurePlanRequestSchema, authorisedFigurePlanRequest)).toBe(true);
     expect(Value.Check(FigurePlanResultSchema, groundedFigurePlanResult)).toBe(true);
+    expect(
+      Value.Check(ConfirmFigurePlanRequestSchema, {
+        proposalId: groundedFigurePlanResult.proposal.id,
+      }),
+    ).toBe(true);
   });
 
   it('requires an immutable request-input hash in every AI run record', () => {
@@ -37,7 +46,24 @@ describe('FigurePlan contract', () => {
       Value.Check(AiRunSchema, {
         ...runWithoutHash,
         requestInputHash: 'sha256:fixture-request-input',
+        retentionExpiresAt: '2026-08-30T00:00:00.000Z',
       }),
     ).toBe(true);
+  });
+
+  it('requires explicit disposition for every proposal item and bounded draft recovery commands', () => {
+    expect(
+      Value.Check(FigurePlanDispositionRequestSchema, {
+        proposalId: groundedFigurePlanResult.proposal.id,
+        items: groundedFigurePlanResult.proposal.sourceMappings.map((mapping, index) => ({
+          proposalElementId: mapping.proposalElementId,
+          disposition: index === 1 ? 'edited' : index === 2 ? 'rejected' : index === 3 ? 'open-question' : 'accepted',
+          ...(index === 1 ? { editedValue: '叶轮组件（110）' } : {}),
+          ...(index === 2 || index === 3 ? { reason: 'Fixture reviewer disposition.' } : {}),
+        })),
+      }),
+    ).toBe(true);
+    expect(Value.Check(DraftRejectRequestSchema, { reason: 'Not suitable as reference.' })).toBe(true);
+    expect(Value.Check(DraftRetryRequestSchema, {})).toBe(false);
   });
 });

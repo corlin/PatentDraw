@@ -1,9 +1,11 @@
-import type { ProjectRole } from '@patentdraw/contracts';
+import type { ProjectRelationship, ProjectRole } from '@patentdraw/contracts';
 
 export interface ProjectContextFixture {
   projectId: string;
   actorId: string;
+  activeRole: ProjectRole;
   roles: readonly ProjectRole[];
+  relationships: readonly ProjectRelationship[];
   authorisedSources: readonly {
     id: string;
     contentHash: string;
@@ -15,7 +17,9 @@ export interface ProjectContextFixture {
 export const authorisedProjectContext: ProjectContextFixture = {
   projectId: 'project-fixture-pump',
   actorId: 'drafter-fixture-01',
+  activeRole: 'drafter',
   roles: ['drafter'],
+  relationships: ['inventor', 'contributor'],
   authorisedSources: [
     {
       id: 'source-fixture-disclosure-01',

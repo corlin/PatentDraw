@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://patentdraw.local/schemas/export-manifest-v1.json",
+  "title": "PatentDraw SVG Export Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "candidateFingerprint",
+    "projectId",
+    "figureId",
+    "revision",
+    "sheet",
+    "textState",
+    "ruleRun",
+    "review",
+    "cnipa",
+    "artifacts",
+    "export",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "patentdraw-export-manifest/1" },
+    "packageId": { "$ref": "#/$defs/nonEmpty" },
+    "candidateFingerprint": { "$ref": "#/$defs/sha256" },
+    "projectId": { "$ref": "#/$defs/nonEmpty" },
+    "figureId": { "$ref": "#/$defs/nonEmpty" },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "canonicalSvgHash", "sourceLinks"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" },
+        "canonicalSvgHash": { "$ref": "#/$defs/sha256" },
+        "parentRevisionId": { "$ref": "#/$defs/nonEmpty" },
+        "sourceLinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "hash"],
+            "properties": {
+              "id": { "$ref": "#/$defs/nonEmpty" },
+              "hash": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        }
+      }
+    },
+    "sheet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["standard", "widthMm", "heightMm", "viewBox"],
+      "properties": {
+        "standard": { "enum": ["A4", "US-Letter"] },
+        "widthMm": { "type": "number", "exclusiveMinimum": 0 },
+        "heightMm": { "type": "number", "exclusiveMinimum": 0 },
+        "viewBox": {
+          "type": "array",
+          "prefixItems": [
+            { "type": "number" },
+            { "type": "number" },
+            { "type": "number", "exclusiveMinimum": 0 },
+            { "type": "number", "exclusiveMinimum": 0 }
+          ],
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
+    "textState": { "enum": ["live-text", "outlined-text", "mixed"] },
+    "ruleRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "profileId", "profileVersion", "profileHash", "warnings"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" },
+        "profileId": { "$ref": "#/$defs/nonEmpty" },
+        "profileVersion": { "$ref": "#/$defs/nonEmpty" },
+        "profileHash": { "$ref": "#/$defs/sha256" },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["findingId", "ruleId", "summary"],
+            "properties": {
+              "findingId": { "$ref": "#/$defs/nonEmpty" },
+              "ruleId": { "$ref": "#/$defs/nonEmpty" },
+              "summary": { "$ref": "#/$defs/nonEmpty" }
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["technicalDecisionId", "attorneyDecisionId"],
+      "properties": {
+        "technicalDecisionId": { "$ref": "#/$defs/nonEmpty" },
+        "attorneyDecisionId": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "cnipa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "limitation"],
+      "properties": {
+        "label": {
+          "enum": [
+            "not-applicable",
+            "not-CNIPA-electronic-submission-ready",
+            "CNIPA-XML-evidence-recorded"
+          ]
+        },
+        "evidenceId": { "$ref": "#/$defs/nonEmpty" },
+        "limitation": { "$ref": "#/$defs/nonEmpty" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "mediaType", "sha256", "byteLength"],
+        "properties": {
+          "path": { "const": "figure.svg" },
+          "mediaType": { "const": "image/svg+xml" },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "byteLength": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actorId", "occurredAt"],
+      "properties": {
+        "actorId": { "$ref": "#/$defs/nonEmpty" },
+        "occurredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "contains": { "const": "not-an-office-filing-event" },
+      "items": {
+        "enum": [
+          "reviewed-drawing-asset",
+          "not-an-office-filing-event",
+          "no-office-acceptance-assertion",
+          "not-CNIPA-electronic-submission-ready",
+          "CNIPA-XML-evidence-recorded"
+        ]
+      },
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "cnipa": {
+            "properties": {
+              "label": { "const": "not-CNIPA-electronic-submission-ready" }
+            },
+            "required": ["label"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": { "const": "not-CNIPA-electronic-submission-ready" }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "cnipa": {
+            "properties": {
+              "label": { "const": "CNIPA-XML-evidence-recorded" }
+            },
+            "required": ["label"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cnipa": { "required": ["label", "limitation", "evidenceId"] },
+          "limitations": {
+            "contains": { "const": "CNIPA-XML-evidence-recorded" }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "nonEmpty": { "type": "string", "minLength": 1 },
+    "sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+  }
+}

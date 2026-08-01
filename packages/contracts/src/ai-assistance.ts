@@ -2,9 +2,15 @@ import { Type, type Static } from '@sinclair/typebox';
 
 export const ProjectRoleSchema = Type.Union([
   Type.Literal('drafter'),
+  Type.Literal('contributor'),
   Type.Literal('technical-reviewer'),
   Type.Literal('attorney-agent'),
   Type.Literal('administrator'),
+]);
+
+export const ProjectRelationshipSchema = Type.Union([
+  Type.Literal('inventor'),
+  Type.Literal('contributor'),
 ]);
 
 export const AssistanceTypeSchema = Type.Literal('figure-plan');
@@ -46,6 +52,7 @@ export const FigurePlanProposalSchema = Type.Object({
   components: Type.Array(Type.String({ minLength: 1 })),
   signs: Type.Array(Type.String({ minLength: 1 })),
   openQuestions: Type.Array(Type.String({ minLength: 1 })),
+  limitations: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
   sourceMappings: Type.Array(SourceMappingSchema),
 });
 
@@ -72,6 +79,7 @@ export const AiRunSchema = Type.Object({
   status: AiRunStatusSchema,
   limitationState: Type.String({ minLength: 1 }),
   createdAt: Type.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}T.+Z$' }),
+  retentionExpiresAt: Type.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}T.+Z$' }),
 });
 
 export const FigurePlanResultSchema = Type.Union([
@@ -86,11 +94,33 @@ export const FigurePlanResultSchema = Type.Union([
   }),
 ]);
 
+export const ConfirmFigurePlanRequestSchema = Type.Object({
+  proposalId: Type.String({ minLength: 1 }),
+});
+
+export const FigurePlanItemDispositionSchema = Type.Object({
+  proposalElementId: Type.String({ minLength: 1 }),
+  disposition: Type.Union([
+    Type.Literal('accepted'),
+    Type.Literal('rejected'),
+    Type.Literal('edited'),
+    Type.Literal('open-question'),
+  ]),
+  editedValue: Type.Optional(Type.String({ minLength: 1 })),
+  reason: Type.Optional(Type.String({ minLength: 1 })),
+});
+
+export const FigurePlanDispositionRequestSchema = Type.Object({
+  proposalId: Type.String({ minLength: 1 }),
+  items: Type.Array(FigurePlanItemDispositionSchema, { minItems: 1 }),
+});
+
 export const DraftJobStatusSchema = Type.Union([
   Type.Literal('queued'),
   Type.Literal('running'),
   Type.Literal('ready'),
   Type.Literal('cancelled'),
+  Type.Literal('rejected'),
   Type.Literal('failed'),
   Type.Literal('refused'),
   Type.Literal('invalidated'),
@@ -101,6 +131,7 @@ export const GeneratedDraftAssetSchema = Type.Object({
   aiRunId: Type.String({ minLength: 1 }),
   confirmedPlanId: Type.String({ minLength: 1 }),
   blobHash: Type.String({ minLength: 1 }),
+  sourceHashes: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
   limitationLabel: Type.Literal('non-authoritative-ai-draft'),
   selectionState: Type.Union([
     Type.Literal('unselected'),
@@ -127,6 +158,14 @@ export const DraftJobSchema = Type.Object({
   reason: Type.Optional(Type.String({ minLength: 1 })),
 });
 
+export const DraftRejectRequestSchema = Type.Object({
+  reason: Type.String({ minLength: 1 }),
+});
+
+export const DraftRetryRequestSchema = Type.Object({
+  request: DraftAssetRequestSchema,
+});
+
 export const AiAuditEventSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   eventType: Type.Union([
@@ -134,6 +173,7 @@ export const AiAuditEventSchema = Type.Object({
     Type.Literal('ai-run-invalidated'),
     Type.Literal('source-authorisation-revoked'),
     Type.Literal('reviewer-decision-invalidated'),
+    Type.Literal('privileged-audit-read'),
   ]),
   projectId: Type.String({ minLength: 1 }),
   actorId: Type.String({ minLength: 1 }),
@@ -141,6 +181,32 @@ export const AiAuditEventSchema = Type.Object({
   targetIds: Type.Array(Type.String({ minLength: 1 })),
   reason: Type.String({ minLength: 1 }),
   metadata: Type.Record(Type.String(), Type.String()),
+  provenance: Type.Optional(
+    Type.Object({
+      provider: Type.String({ minLength: 1 }),
+      model: Type.String({ minLength: 1 }),
+      modelVersion: Type.String({ minLength: 1 }),
+      instructionVersion: Type.String({ minLength: 1 }),
+      requestInputHash: Type.String({ minLength: 1 }),
+      selectedSourceHashes: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+      consentRecordId: Type.String({ minLength: 1 }),
+      outputHash: Type.String({ minLength: 1 }),
+      limitationState: Type.String({ minLength: 1 }),
+      retentionExpiresAt: Type.String({ pattern: '^\\d{4}-\\d{2}-\\d{2}T.+Z$' }),
+    }),
+  ),
+});
+
+export const DraftHandoffRequestSchema = Type.Object({
+  jobId: Type.String({ minLength: 1 }),
+  canonicalFigureRevisionId: Type.String({ minLength: 1 }),
+});
+
+export const DraftHandoffResultSchema = Type.Object({
+  jobId: Type.String({ minLength: 1 }),
+  assetId: Type.String({ minLength: 1 }),
+  canonicalFigureRevisionId: Type.String({ minLength: 1 }),
+  exportEligible: Type.Literal(false),
 });
 
 export const AiInvalidationSchema = Type.Object({
@@ -153,6 +219,7 @@ export const AiInvalidationSchema = Type.Object({
 });
 
 export type ProjectRole = Static<typeof ProjectRoleSchema>;
+export type ProjectRelationship = Static<typeof ProjectRelationshipSchema>;
 export type AssistanceType = Static<typeof AssistanceTypeSchema>;
 export type AuthorisedSource = Static<typeof AuthorisedSourceSchema>;
 export type ConsentRecord = Static<typeof ConsentRecordSchema>;
@@ -162,9 +229,16 @@ export type FigurePlanProposal = Static<typeof FigurePlanProposalSchema>;
 export type AiRunStatus = Static<typeof AiRunStatusSchema>;
 export type AiRun = Static<typeof AiRunSchema>;
 export type FigurePlanResult = Static<typeof FigurePlanResultSchema>;
+export type ConfirmFigurePlanRequest = Static<typeof ConfirmFigurePlanRequestSchema>;
+export type FigurePlanItemDisposition = Static<typeof FigurePlanItemDispositionSchema>;
+export type FigurePlanDispositionRequest = Static<typeof FigurePlanDispositionRequestSchema>;
 export type DraftJobStatus = Static<typeof DraftJobStatusSchema>;
 export type GeneratedDraftAsset = Static<typeof GeneratedDraftAssetSchema>;
 export type DraftAssetRequest = Static<typeof DraftAssetRequestSchema>;
 export type DraftJob = Static<typeof DraftJobSchema>;
+export type DraftRejectRequest = Static<typeof DraftRejectRequestSchema>;
+export type DraftRetryRequest = Static<typeof DraftRetryRequestSchema>;
 export type AiAuditEvent = Static<typeof AiAuditEventSchema>;
 export type AiInvalidation = Static<typeof AiInvalidationSchema>;
+export type DraftHandoffRequest = Static<typeof DraftHandoffRequestSchema>;
+export type DraftHandoffResult = Static<typeof DraftHandoffResultSchema>;

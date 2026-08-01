@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-ai-figure-assistance`
 **Created**: 2026-07-31
-**Status**: Draft
+**Status**: Implemented for deterministic pilot; supervised pilot pending
 **Input**: User description: "Integrate AI text-to-image capability safely into the patent-figure workflow."
 
 **Policy basis**: AI output is source-linked drafting assistance, not technical, legal or filing
@@ -97,7 +97,7 @@ invalidated; submit a request lacking authority or source support and verify abs
 
 - **SC-001**: In all six AI fixtures, 100% of proposals preserve the required provenance fields and no output bypasses a human or deterministic approval gate.
 - **SC-002**: 100% of intentionally unsupported or contradictory fixture elements are labelled `abstained` or `manual-review-required`, never represented as source fact.
-- **SC-003**: 100% of selected-source, FigurePlan or linked-revision changes invalidate dependent AI mappings in the regression suite.
+- **SC-003**: 100% of selected-source, allowed-scope, FigurePlan or linked-revision changes invalidate dependent AI mappings in the regression suite.
 - **SC-004**: In the supervised pilot, drafters complete the approved FigurePlan stage at least 20% faster than a manual baseline without an increase in reviewer-rejected unsupported components.
 
 ## Assumptions
@@ -105,3 +105,13 @@ invalidated; submit a request lacking authority or source support and verify abs
 - AI assistance is opt-in per request and receives only the project sources selected by the user.
 - The first release supports plan proposals and line-art draft candidates, not automatic creation of a final filing figure.
 - A drafter, technical reviewer and attorney/agent retain their existing separate decisions.
+
+## Delivery state
+
+The repository-completable deterministic pilot is implemented. It includes authenticated
+development composition, immutable in-memory and PostgreSQL repository adapters, queued draft
+jobs, independent canonical-SVG handoff validation, four dependency-change hooks, complete run
+provenance, retention events, private object-storage adapters and enforced coverage thresholds.
+
+SC-004 remains an external supervised-pilot gate. It is not satisfied by fixtures, automated
+tests, the deterministic development provider or the earlier human UI demonstration.

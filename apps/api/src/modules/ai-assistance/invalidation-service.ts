@@ -6,6 +6,7 @@ import {
   type AiInvalidation,
   type AuditEvent,
 } from './audit.js';
+import type { AiAssistanceRepository, DependencyChangeKind } from './repository.js';
 
 export function invalidateAiDependencies(input: {
   projectId: string;
@@ -14,6 +15,7 @@ export function invalidateAiDependencies(input: {
   reason: string;
   affectedAiRunIds: readonly string[];
   affectedReviewerDecisionIds: readonly string[];
+  changeKind?: DependencyChangeKind;
   now?: () => Date;
 }): {
   invalidation: Readonly<AiInvalidation>;
@@ -32,23 +34,26 @@ export function invalidateAiDependencies(input: {
     occurredAt,
     reason: input.reason,
   });
-  let auditEvents = appendAuditEvent([], {
-    id: `audit:${invalidation.id}:source`,
-    eventType: 'source-authorisation-revoked',
-    projectId: input.projectId,
-    actorId: input.actorId,
-    occurredAt,
-    targetIds: [input.changedTargetId],
-    reason: input.reason,
-    metadata: { invalidationId: invalidation.id },
-  });
+  let auditEvents: readonly Readonly<AuditEvent>[] = [];
+  if ((input.changeKind ?? 'source') === 'source') {
+    auditEvents = appendAuditEvent(auditEvents, {
+      id: `audit:${invalidation.id}:source`,
+      eventType: 'source-authorisation-revoked',
+      projectId: input.projectId,
+      actorId: input.actorId,
+      occurredAt,
+      targetIds: [input.changedTargetId],
+      reason: input.reason,
+      metadata: { invalidationId: invalidation.id },
+    });
+  }
   auditEvents = appendAuditEvent(auditEvents, {
     id: `audit:${invalidation.id}:runs`,
     eventType: 'ai-run-invalidated',
     projectId: input.projectId,
     actorId: input.actorId,
     occurredAt,
-    targetIds: input.affectedAiRunIds,
+    targetIds: [...input.affectedAiRunIds],
     reason: input.reason,
     metadata: { invalidationId: invalidation.id, changedTargetId: input.changedTargetId },
   });
@@ -59,7 +64,7 @@ export function invalidateAiDependencies(input: {
       projectId: input.projectId,
       actorId: input.actorId,
       occurredAt,
-      targetIds: input.affectedReviewerDecisionIds,
+      targetIds: [...input.affectedReviewerDecisionIds],
       reason: input.reason,
       metadata: { invalidationId: invalidation.id, changedTargetId: input.changedTargetId },
     });
@@ -69,4 +74,70 @@ export function invalidateAiDependencies(input: {
     invalidatedReviewerDecisionIds: Object.freeze([...input.affectedReviewerDecisionIds]),
     auditEvents,
   };
+}
+
+export async function invalidateDependencyChange(input: {
+  repository: AiAssistanceRepository;
+  projectId: string;
+  kind: DependencyChangeKind;
+  changedTargetId: string;
+  actorId: string;
+  reason: string;
+  now?: () => Date;
+}) {
+  const result = await input.repository.resolveAndSaveInvalidation({
+    projectId: input.projectId,
+    kind: input.kind,
+    targetId: input.changedTargetId,
+    build: (dependencies) =>
+      invalidateAiDependencies({
+        projectId: input.projectId,
+        changedTargetId: input.changedTargetId,
+        actorId: input.actorId,
+        reason: input.reason,
+        changeKind: input.kind,
+        affectedAiRunIds: dependencies.aiRunIds,
+        affectedReviewerDecisionIds: dependencies.reviewerDecisionIds,
+        ...(input.now ? { now: input.now } : {}),
+      }),
+  });
+  return (
+    result ?? {
+      invalidation: null,
+      invalidatedReviewerDecisionIds: [],
+      auditEvents: [],
+    }
+  );
+}
+
+export class AiDependencyInvalidationHooks {
+  constructor(private readonly repository: AiAssistanceRepository) {}
+
+  onSourceChanged(input: ChangeHookInput) {
+    return this.invalidate('source', input);
+  }
+
+  onScopeChanged(input: ChangeHookInput) {
+    return this.invalidate('scope', input);
+  }
+
+  onFigurePlanChanged(input: ChangeHookInput) {
+    return this.invalidate('figure-plan', input);
+  }
+
+  onLinkedRevisionChanged(input: ChangeHookInput) {
+    return this.invalidate('linked-revision', input);
+  }
+
+  private invalidate(kind: DependencyChangeKind, input: ChangeHookInput) {
+    return invalidateDependencyChange({ repository: this.repository, kind, ...input });
+  }
+}
+
+interface ChangeHookInput {
+  projectId: string;
+  changedTargetId: string;
+  actorId: string;
+  reason: string;
+  now?: () => Date;
 }

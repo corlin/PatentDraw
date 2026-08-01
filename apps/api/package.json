@@ -12,10 +12,13 @@
     "@fastify/cors": "^11.1.0",
     "@patentdraw/contracts": "workspace:*",
     "@sinclair/typebox": "^0.34.41",
-    "fastify": "^5.6.2"
+    "@xmldom/xmldom": "^0.9.10",
+    "fastify": "^5.6.2",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@patentdraw/fixtures": "workspace:*",
+    "@types/pg": "^8.15.5",
     "tsx": "^4.20.6"
   }
 }

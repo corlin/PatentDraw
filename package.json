@@ -9,13 +9,15 @@
     "build": "pnpm --recursive run build",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
-    "format:check": "prettier --check eslint.config.js prettier.config.cjs tsconfig.base.json tsconfig.json vitest.workspace.ts package.json pnpm-workspace.yaml apps packages",
-    "test": "vitest run --passWithNoTests"
+    "format:check": "prettier --check eslint.config.js prettier.config.cjs tsconfig.base.json tsconfig.json vitest.config.ts package.json pnpm-workspace.yaml apps packages",
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@sinclair/typebox": "^0.34.41",
     "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.39.1",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",

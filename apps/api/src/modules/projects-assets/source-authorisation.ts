@@ -1,9 +1,16 @@
-import type { AuthorisedSource, ConsentRecord, ProjectRole } from '@patentdraw/contracts';
+import type {
+  AuthorisedSource,
+  ConsentRecord,
+  ProjectRelationship,
+  ProjectRole,
+} from '@patentdraw/contracts';
 
 export interface ProjectContext {
   projectId: string;
   actorId: string;
+  activeRole: ProjectRole;
   roles: readonly ProjectRole[];
+  relationships: readonly ProjectRelationship[];
   authorisedSources: readonly SourceAuthority[];
 }
 

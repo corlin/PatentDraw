@@ -101,6 +101,7 @@ function FigurePlanReview({ result }: { result: FigurePlanResult | undefined }) 
       {result.proposal.openQuestions.length > 0 && (
         <p>Open questions: {result.proposal.openQuestions.join('; ')}</p>
       )}
+      <p>Limitations: {result.proposal.limitations.join('; ')}</p>
     </section>
   );
 }

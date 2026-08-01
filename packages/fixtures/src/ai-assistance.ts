@@ -31,6 +31,9 @@ export const groundedFigurePlanResult: FigurePlanResult = {
     components: ['component-pump-housing', 'component-impeller'],
     signs: ['sign-100', 'sign-110'],
     openQuestions: [],
+    limitations: [
+      'AI-generated planning aid only; geometry and reference signs require human verification.',
+    ],
     sourceMappings: [
       {
         proposalElementId: 'view-longitudinal-section',
@@ -76,6 +79,58 @@ export const hallucinatedFigurePlanResult: FigurePlanResult = {
   reason: 'The requested bearing arrangement is not mapped to a selected source.',
 };
 
+export const abstentionFigurePlanResult: FigurePlanResult = {
+  status: 'abstained',
+  reason: 'The selected source does not establish enough geometry for a grounded view.',
+};
+
+export const contradictionFigurePlanResult: FigurePlanResult = {
+  status: 'manual-review-required',
+  reason: 'The selected source contains contradictory impeller orientation statements.',
+};
+
+export const forbiddenAssertionFigurePlanResult: FigurePlanResult = {
+  status: 'proposed',
+  proposal: {
+    ...groundedFigurePlanResult.proposal,
+    components: ['filing-ready undisclosed controller'],
+    sourceMappings: [],
+  },
+};
+
+export const aiAssistanceFixtureCases = [
+  {
+    id: 'grounding',
+    providerResult: groundedFigurePlanResult,
+    expectedStatus: 'proposed',
+  },
+  {
+    id: 'refusal',
+    providerResult: refusalFigurePlanResult,
+    expectedStatus: 'refused',
+  },
+  {
+    id: 'abstention',
+    providerResult: abstentionFigurePlanResult,
+    expectedStatus: 'abstained',
+  },
+  {
+    id: 'contradiction',
+    providerResult: contradictionFigurePlanResult,
+    expectedStatus: 'manual-review-required',
+  },
+  {
+    id: 'forbidden-assertion',
+    providerResult: forbiddenAssertionFigurePlanResult,
+    expectedStatus: 'manual-review-required',
+  },
+  {
+    id: 'post-edit-invalidation',
+    providerResult: groundedFigurePlanResult,
+    expectedStatus: 'invalidated',
+  },
+] as const;
+
 export const fixtureDraftAssetRequest: DraftAssetRequest = {
   projectId: 'project-fixture-pump',
   confirmedPlanId: 'proposal-fixture-grounded-01',
@@ -89,6 +144,7 @@ export const fixtureDraftAsset: GeneratedDraftAsset = {
   aiRunId: 'run-fixture-draft-01',
   confirmedPlanId: 'proposal-fixture-grounded-01',
   blobHash: 'sha256:fixture-draft-asset-01',
+  sourceHashes: ['sha256:fixture-disclosure-01'],
   limitationLabel: 'non-authoritative-ai-draft',
   selectionState: 'unselected',
   exportEligible: false,

@@ -14,7 +14,7 @@ generation until that slice is accepted by a drafter and reviewer.
 - [X] T002 Create the web/API package manifests in `apps/web/package.json` and `apps/api/package.json`.
 - [X] T003 [P] Create shared contracts and fictional-fixture package manifests in `packages/contracts/package.json` and `packages/fixtures/package.json`.
 - [X] T004 [P] Configure formatting, linting and TypeScript checking in `eslint.config.js`, `prettier.config.cjs` and `tsconfig.base.json`.
-- [X] T005 Configure Vitest workspaces and coverage commands in `vitest.workspace.ts`.
+- [X] T005 Configure Vitest project and coverage commands in `vitest.config.ts`.
 
 ## Phase 2: Foundational safeguards
 
@@ -112,3 +112,21 @@ After the P1 demo gate: T020 and T021 can run in parallel; after T022, T023 and 
 
 All tasks use the required checkbox, sequential ID, optional parallel marker, user-story label
 where applicable, and an exact file path.
+
+## Phase 7: Convergence
+
+- [X] T035 CRITICAL Wire an authenticated development composition root that registers FigurePlan, draft-job and audit routes in `apps/api/src/server.ts` per US1/US2/US3 runtime acceptance (missing).
+- [X] T036 CRITICAL Add repository contracts plus PostgreSQL-backed immutable AI-run, proposal, draft, audit and dependency persistence in `apps/api/src/modules/ai-assistance/repository.ts` and `apps/api/src/infrastructure/postgres-ai-repository.ts` per FR-005 and Constitution I/VI (missing).
+- [X] T037 CRITICAL Implement transactional dependency resolution and automatic invalidation for source, scope, FigurePlan and linked-revision changes in `apps/api/src/modules/ai-assistance/invalidation-service.ts` per FR-006 and Constitution IV (partial).
+- [X] T038 [US2] Revalidate confirmed-plan source hashes and current source authority before every draft request and create a fully-provenanced draft AI run in `apps/api/src/modules/ai-assistance/draft-asset-service.ts` per FR-001/FR-005 (partial).
+- [X] T039 [US2] Implement queued/running/ready/cancelled draft jobs with result, progress and cancellation routes in `apps/api/src/modules/ai-assistance/draft-job-service.ts` and `apps/api/src/modules/ai-assistance/routes.ts` per plan performance goals and US2 (partial).
+- [X] T040 [US2] Add an explicit handoff command that validates a separately persisted canonical SVG FigureRevision and never promotes the draft asset in `packages/contracts/src/ai-assistance.ts` and `apps/api/src/modules/ai-assistance/routes.ts` per FR-004 (partial).
+- [X] T041 [US3] Extend the audit read model and timeline with source hashes, provider/model, consent, instruction, output hash and limitations in `packages/contracts/src/ai-assistance.ts` and `apps/web/src/features/ai-figure-plan/AiAuditTimeline.tsx` per T030/FR-005 (partial).
+- [X] T042 [P] Add six distinct end-to-end fixtures covering grounding, refusal, abstention, contradiction, forbidden assertion and post-edit invalidation with complete provenance expectations in `packages/fixtures/src/ai-assistance.ts` and `tests/fixtures/ai-assistance-fixtures.test.ts` per SC-001/SC-002/Constitution V (partial).
+- [X] T043 [P] Add source-edit, scope-edit, FigurePlan-edit and linked-revision-edit invalidation regression cases in `tests/integration/ai-invalidation.integration.test.ts` per SC-003 (partial).
+- [X] T044 Wire bounded provider retry/failure controls into FigurePlan and draft execution and enforce persisted retention expiry in `apps/api/src/modules/ai-assistance/provider-policy.ts` and repository adapters per T032/FR-005 (partial).
+- [X] T045 [P] Add Vitest V8 coverage commands and enforce meaningful module thresholds in `package.json` and `vitest.config.ts` per T005 (partial).
+- [X] T046 Add private object-storage interfaces and local/private adapters for source and draft blobs in `apps/api/src/infrastructure/object-storage.ts` per plan storage decision and Constitution I (missing).
+- [X] T047 Reconcile feature status, test counts, verified limitations and SC-004 measurement protocol in `specs/002-ai-figure-assistance/spec.md` and `specs/002-ai-figure-assistance/pilot-evidence.md`, then rerun `$speckit-analyze` and `$speckit-converge` per Constitution workflow (partial).
+
+**Convergence order**: T035–T037 → T038–T041 → T042–T046 → T047. T042, T043 and T045 may proceed in parallel after the critical foundation.

@@ -2,7 +2,14 @@ import { authorisedProjectContext } from '../../packages/fixtures/src/index.js';
 import { describe, expect, it } from 'vitest';
 
 import { createApp } from '../../apps/api/src/app.js';
-import { invalidateAiDependencies } from '../../apps/api/src/modules/ai-assistance/invalidation-service.js';
+import {
+  AiDependencyInvalidationHooks,
+  invalidateAiDependencies,
+} from '../../apps/api/src/modules/ai-assistance/invalidation-service.js';
+import {
+  InMemoryAiAssistanceRepository,
+  type DependencyChangeKind,
+} from '../../apps/api/src/modules/ai-assistance/repository.js';
 
 describe('AI invalidation chain', () => {
   it('records source-authorisation revocation without deleting earlier evidence', () => {
@@ -58,4 +65,46 @@ describe('AI invalidation chain', () => {
       await app.close();
     }
   });
+
+  it.each([
+    ['source', 'source-fixture-disclosure-01'],
+    ['scope', 'scope-fixture-housing'],
+    ['figure-plan', 'proposal-fixture-grounded-01'],
+    ['linked-revision', 'revision-fixture-svg-01'],
+  ] as const)(
+    'resolves and invalidates %s dependencies without caller-supplied run ids',
+    async (kind, targetId) => {
+      const repository = new InMemoryAiAssistanceRepository();
+      await repository.registerDependency({
+        projectId: authorisedProjectContext.projectId,
+        kind: kind as DependencyChangeKind,
+        targetId,
+        aiRunIds: [`run-${kind}`],
+        reviewerDecisionIds: [`decision-${kind}`],
+      });
+      const hooks = new AiDependencyInvalidationHooks(repository);
+      const input = {
+        projectId: authorisedProjectContext.projectId,
+        changedTargetId: targetId,
+        actorId: authorisedProjectContext.actorId,
+        reason: `${kind} changed.`,
+        now: () => new Date('2026-07-31T00:00:00.000Z'),
+      };
+      const result =
+        kind === 'source'
+          ? await hooks.onSourceChanged(input)
+          : kind === 'scope'
+            ? await hooks.onScopeChanged(input)
+            : kind === 'figure-plan'
+              ? await hooks.onFigurePlanChanged(input)
+              : await hooks.onLinkedRevisionChanged(input);
+      expect(result.invalidation?.affectedAiRunIds).toEqual([`run-${kind}`]);
+      expect(result.invalidatedReviewerDecisionIds).toEqual([`decision-${kind}`]);
+      expect(
+        (await repository.listAuditEvents(authorisedProjectContext.projectId)).some(
+          (event) => event.eventType === 'ai-run-invalidated',
+        ),
+      ).toBe(true);
+    },
+  );
 });

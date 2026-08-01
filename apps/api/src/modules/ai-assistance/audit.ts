@@ -2,7 +2,8 @@ export type AuditEventType =
   | 'ai-run-created'
   | 'ai-run-invalidated'
   | 'source-authorisation-revoked'
-  | 'reviewer-decision-invalidated';
+  | 'reviewer-decision-invalidated'
+  | 'privileged-audit-read';
 
 export interface AuditEvent {
   id: string;
@@ -10,9 +11,21 @@ export interface AuditEvent {
   projectId: string;
   actorId: string;
   occurredAt: string;
-  targetIds: readonly string[];
+  targetIds: string[];
   reason: string;
-  metadata: Readonly<Record<string, string>>;
+  metadata: Record<string, string>;
+  provenance?: {
+    provider: string;
+    model: string;
+    modelVersion: string;
+    instructionVersion: string;
+    requestInputHash: string;
+    selectedSourceHashes: string[];
+    consentRecordId: string;
+    outputHash: string;
+    limitationState: string;
+    retentionExpiresAt: string;
+  };
 }
 
 export interface AiInvalidation {
@@ -25,11 +38,20 @@ export interface AiInvalidation {
 }
 
 export function createAuditEvent(event: AuditEvent): Readonly<AuditEvent> {
-  return Object.freeze({
+  const frozen = {
     ...event,
     targetIds: Object.freeze([...event.targetIds]),
     metadata: Object.freeze({ ...event.metadata }),
-  });
+    ...(event.provenance
+      ? {
+          provenance: Object.freeze({
+            ...event.provenance,
+            selectedSourceHashes: Object.freeze([...event.provenance.selectedSourceHashes]),
+          }),
+        }
+      : {}),
+  };
+  return Object.freeze(frozen) as Readonly<AuditEvent>;
 }
 
 export function appendAuditEvent(

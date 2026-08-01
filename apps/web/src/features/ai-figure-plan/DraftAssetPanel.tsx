@@ -4,10 +4,12 @@ export function DraftAssetPanel({
   job,
   onSelect,
   onCreateIndependentRevision,
+  onCancel,
 }: {
   job: DraftJob;
   onSelect?: () => void;
   onCreateIndependentRevision?: () => void;
+  onCancel?: () => void;
 }) {
   if (job.status === 'invalidated') {
     return (
@@ -24,9 +26,16 @@ export function DraftAssetPanel({
 
   if (job.status !== 'ready' || !job.asset) {
     return (
-      <p role="status">
-        Draft job: {job.status} ({job.progressPercent}%)
-      </p>
+      <section aria-label="Draft job status">
+        <p role="status">
+          Draft job: {job.status} ({job.progressPercent}%)
+        </p>
+        {(job.status === 'queued' || job.status === 'running') && (
+          <button type="button" onClick={onCancel}>
+            Cancel draft job
+          </button>
+        )}
+      </section>
     );
   }
 
@@ -38,6 +47,7 @@ export function DraftAssetPanel({
       <p>
         Selection: {asset.selectionState}; export eligible: {String(asset.exportEligible)}.
       </p>
+      <p>Source hashes: {asset.sourceHashes.join(', ')}.</p>
       <button type="button" disabled={asset.selectionState !== 'unselected'} onClick={onSelect}>
         Select draft for reference
       </button>
