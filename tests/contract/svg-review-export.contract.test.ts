@@ -7,6 +7,7 @@ import { CNIPA_2026_PROFILE } from '../../apps/api/src/modules/svg-review-export
 import {
   AttorneyApprovalDecisionSchema,
   CandidateSelectionRequestSchema,
+  CreateExportCandidateRequestSchema,
   CreateFigureRevisionRequestSchema,
   CreateRuleRunRequestSchema,
   ExportPackageSchema,
@@ -15,6 +16,7 @@ import {
   RuleRunSchema,
   SvgSanitizationRunSchema,
   TechnicalReviewDecisionSchema,
+  TechnicalReviewDecisionRequestSchema,
   WorkflowAuditEventSchema,
   WorkflowInvalidationSchema,
   WorkflowProblemSchema,
@@ -285,6 +287,55 @@ describe('SVG review and export contracts', () => {
     ).toBe(false);
   });
 
+  it('validates exact-candidate technical review command boundaries', () => {
+    expect(
+      Value.Check(CreateExportCandidateRequestSchema, {
+        revisionId: 'revision-01',
+        revisionHash: hash,
+        revisionFingerprint: hash,
+        ruleRunId: 'run-01',
+        ruleProfileHash: hash,
+        exportSettings: { format: 'sanitized-svg-master', textState: 'live-text' },
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(TechnicalReviewDecisionRequestSchema, {
+        candidateFingerprint: hash,
+        decision: 'approve-structural-correspondence',
+        reason: 'The source, FigurePlan and checked revision correspond.',
+        findingDispositions: [
+          {
+            findingId: 'finding-manual-01',
+            disposition: 'accepted-with-reason',
+            reason: 'The live label is indispensable to explain the flow path.',
+          },
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      Value.Check(TechnicalReviewDecisionRequestSchema, {
+        candidateFingerprint: hash,
+        decision: 'return-for-change',
+        reason: '',
+        findingDispositions: [],
+      }),
+    ).toBe(false);
+    expect(
+      Value.Check(TechnicalReviewDecisionRequestSchema, {
+        candidateFingerprint: hash,
+        decision: 'approve-structural-correspondence',
+        reason: 'Reviewed.',
+        findingDispositions: [
+          {
+            findingId: 'finding-manual-01',
+            disposition: 'accepted-with-reason',
+            reason: '',
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
   it('returns bounded endpoint contracts for sanitization rejection and stale content hashes', async () => {
     const app = await createApp(await createDeterministicDemoOptions());
     const headers = {
@@ -306,7 +357,9 @@ describe('SVG review and export contracts', () => {
         method: 'POST',
         url: '/projects/project-fixture-pump/figures/figure-fixture-pump-01/revisions',
         headers: { ...headers, 'idempotency-key': 'safe-revision-contract' },
-        payload: revisionRequest('<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297"><rect x="20" y="20" width="30" height="20" fill="none" stroke="#000"/></svg>'),
+        payload: revisionRequest(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297"><rect x="20" y="20" width="30" height="20" fill="none" stroke="#000"/></svg>',
+        ),
       });
       expect(created.statusCode).toBe(201);
       const revision = created.json().revision;

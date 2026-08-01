@@ -113,7 +113,7 @@ export function deriveWorkflowSnapshot(
     }
     primaryAction = action(
       'technical-approve',
-      '提交技术审核',
+      '批准结构对应',
       enabled ? 'enabled' : selfReview ? 'disabled' : 'waiting',
       'technical-reviewer',
       gates,
@@ -182,6 +182,20 @@ export function deriveWorkflowSnapshot(
     );
   }
 
+  const actions = [primaryAction];
+  if (state === 'technical-review' && primaryAction.availability === 'enabled') {
+    actions.push(
+      action(
+        'technical-return',
+        '退回修改',
+        'enabled',
+        'technical-reviewer',
+        [],
+        evidence.projection.currentCandidateId,
+      ),
+    );
+  }
+
   return {
     version: evidence.projection.version,
     etag: `workflow:${evidence.projection.version}`,
@@ -189,7 +203,7 @@ export function deriveWorkflowSnapshot(
     actor: { id: context.actorId, activeRole: context.activeRole, roles: [...context.roles] },
     current,
     primaryAction,
-    actions: [primaryAction],
+    actions,
     blockingGates: [...primaryAction.blockingGates],
   };
 }

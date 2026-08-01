@@ -203,6 +203,18 @@ export const CreateRuleRunRequestSchema = Type.Object({
   profile: RuleProfileReferenceSchema,
 });
 
+export const CreateExportCandidateRequestSchema = Type.Object({
+  revisionId: Type.String({ minLength: 1 }),
+  revisionHash: Sha256Schema,
+  revisionFingerprint: Sha256Schema,
+  ruleRunId: Type.String({ minLength: 1 }),
+  ruleProfileHash: Sha256Schema,
+  exportSettings: Type.Object({
+    format: Type.Literal('sanitized-svg-master'),
+    textState: Type.Union([Type.Literal('live-text'), Type.Literal('outlined-text')]),
+  }),
+});
+
 export const ExportCandidateSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   projectId: Type.String({ minLength: 1 }),
@@ -240,6 +252,16 @@ export const FindingDispositionSchema = Type.Object({
     Type.Literal('not-applicable'),
   ]),
   reason: Type.String({ minLength: 1 }),
+});
+
+export const TechnicalReviewDecisionRequestSchema = Type.Object({
+  candidateFingerprint: Sha256Schema,
+  decision: Type.Union([
+    Type.Literal('approve-structural-correspondence'),
+    Type.Literal('return-for-change'),
+  ]),
+  reason: Type.String({ minLength: 1 }),
+  findingDispositions: Type.Array(FindingDispositionSchema),
 });
 
 export const TechnicalReviewDecisionSchema = Type.Object({
@@ -486,7 +508,10 @@ export type RuleFinding = Static<typeof RuleFindingSchema>;
 export type RuleOutcome = Static<typeof RuleOutcomeSchema>;
 export type RuleRun = Static<typeof RuleRunSchema>;
 export type CreateRuleRunRequest = Static<typeof CreateRuleRunRequestSchema>;
+export type CreateExportCandidateRequest = Static<typeof CreateExportCandidateRequestSchema>;
 export type ExportCandidate = Static<typeof ExportCandidateSchema>;
+export type FindingDisposition = Static<typeof FindingDispositionSchema>;
+export type TechnicalReviewDecisionRequest = Static<typeof TechnicalReviewDecisionRequestSchema>;
 export type TechnicalReviewDecision = Static<typeof TechnicalReviewDecisionSchema>;
 export type AttorneyApprovalDecision = Static<typeof AttorneyApprovalDecisionSchema>;
 export type WorkflowState = Static<typeof WorkflowStateSchema>;

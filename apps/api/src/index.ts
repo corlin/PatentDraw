@@ -11,6 +11,7 @@ export * from './modules/projects-assets/source-authorisation.js';
 export * from './modules/svg-review-export/idempotency.js';
 export * from './modules/svg-review-export/problems.js';
 export * from './modules/svg-review-export/repository.js';
+export * from './modules/svg-review-export/review-service.js';
 export * from './modules/svg-review-export/revision-service.js';
 export * from './modules/svg-review-export/rule-profile-catalog.js';
 export * from './modules/svg-review-export/rule-service.js';

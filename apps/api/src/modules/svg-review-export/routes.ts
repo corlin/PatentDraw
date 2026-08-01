@@ -2,11 +2,15 @@ import { createHash } from 'node:crypto';
 
 import {
   CandidateSelectionRequestSchema,
+  CreateExportCandidateRequestSchema,
   CreateFigureRevisionRequestSchema,
   CreateRuleRunRequestSchema,
+  TechnicalReviewDecisionRequestSchema,
   type CandidateSelectionRequest,
+  type CreateExportCandidateRequest,
   type CreateFigureRevisionRequest,
   type CreateRuleRunRequest,
+  type TechnicalReviewDecisionRequest,
 } from '@patentdraw/contracts';
 import { Value } from '@sinclair/typebox/value';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -21,6 +25,7 @@ import {
   type CreateFigureRevisionResult,
 } from './revision-service.js';
 import { StaleWorkflowError, type SvgWorkflowRepository } from './repository.js';
+import { createExportCandidate, submitTechnicalReviewDecision } from './review-service.js';
 import { runRevisionRules } from './rule-service.js';
 import { recordWorkflowCommandOutcome } from './workflow-audit.js';
 import { getWorkflowSnapshot } from './workflow-state.js';
@@ -260,6 +265,151 @@ export function registerSvgWorkflowRoutes(
     }
     return reply.send({ run });
   });
+
+  app.post('/projects/:projectId/figures/:figureId/export-candidates', async (request, reply) => {
+    const access = requireFigureAccess(request, reply);
+    if (!access) return;
+    if (!Value.Check(CreateExportCandidateRequestSchema, request.body)) {
+      return reply
+        .code(400)
+        .send(
+          problem('invalid-export-candidate-request', 400, 'Invalid export candidate request.'),
+        );
+    }
+    const version = expectedVersion(request, reply);
+    const key = idempotencyKey(request, reply);
+    if (version === null || !key) return;
+    const body = request.body as CreateExportCandidateRequest;
+    try {
+      const result = await idempotency.execute({
+        projectId: access.context.projectId,
+        key,
+        requestHash: requestHash({ body, version }),
+        operation: () =>
+          createExportCandidate({
+            repository,
+            context: access.context,
+            figureId: access.figureId,
+            expectedVersion: version,
+            request: body,
+          }),
+      });
+      const workflow = await getWorkflowSnapshot({
+        repository,
+        context: access.context,
+        figureId: access.figureId,
+      });
+      return reply
+        .code(result.replayed ? 200 : 201)
+        .header('etag', workflow.etag)
+        .send({ candidate: result.value.candidate, workflow });
+    } catch (error) {
+      return sendWorkflowFailure(reply, repository, access.context, access.figureId, error, [
+        body.revisionId,
+        body.ruleRunId,
+      ]);
+    }
+  });
+
+  app.get(
+    '/projects/:projectId/figures/:figureId/export-candidates/:candidateId',
+    async (request, reply) => {
+      const access = requireFigureAccess(request, reply);
+      if (!access) return;
+      const candidateId = (request.params as { candidateId?: string }).candidateId;
+      if (!candidateId) {
+        return reply
+          .code(400)
+          .send(problem('candidate-id-required', 400, 'Candidate ID is required.'));
+      }
+      const candidate = await repository.getExportCandidate(access.context.projectId, candidateId);
+      if (!candidate || candidate.figureId !== access.figureId) {
+        return reply
+          .code(404)
+          .send(problem('export-candidate-not-found', 404, 'Export candidate was not found.'));
+      }
+      return reply.send({ candidate });
+    },
+  );
+
+  app.post(
+    '/projects/:projectId/figures/:figureId/export-candidates/:candidateId/technical-decisions',
+    async (request, reply) => {
+      const access = requireFigureAccess(request, reply);
+      if (!access) return;
+      const candidateId = (request.params as { candidateId?: string }).candidateId;
+      if (!candidateId) {
+        return reply
+          .code(400)
+          .send(problem('candidate-id-required', 400, 'Candidate ID is required.'));
+      }
+      if (!Value.Check(TechnicalReviewDecisionRequestSchema, request.body)) {
+        return reply
+          .code(400)
+          .send(
+            problem(
+              'invalid-technical-decision-request',
+              400,
+              'Invalid technical decision request.',
+            ),
+          );
+      }
+      const version = expectedVersion(request, reply);
+      const key = idempotencyKey(request, reply);
+      if (version === null || !key) return;
+      const body = request.body as TechnicalReviewDecisionRequest;
+      try {
+        const result = await idempotency.execute({
+          projectId: access.context.projectId,
+          key,
+          requestHash: requestHash({ body, version, candidateId }),
+          operation: () =>
+            submitTechnicalReviewDecision({
+              repository,
+              context: access.context,
+              figureId: access.figureId,
+              candidateId,
+              expectedVersion: version,
+              request: body,
+            }),
+        });
+        const workflow = await getWorkflowSnapshot({
+          repository,
+          context: access.context,
+          figureId: access.figureId,
+        });
+        return reply
+          .code(result.replayed ? 200 : 201)
+          .header('etag', workflow.etag)
+          .send({ decision: result.value.decision, workflow });
+      } catch (error) {
+        return sendWorkflowFailure(reply, repository, access.context, access.figureId, error, [
+          candidateId,
+        ]);
+      }
+    },
+  );
+
+  app.get(
+    '/projects/:projectId/figures/:figureId/technical-decisions/:decisionId',
+    async (request, reply) => {
+      const access = requireFigureAccess(request, reply);
+      if (!access) return;
+      const decisionId = (request.params as { decisionId?: string }).decisionId;
+      if (!decisionId) {
+        return reply
+          .code(400)
+          .send(problem('technical-decision-id-required', 400, 'Decision ID is required.'));
+      }
+      const decision = await repository.getTechnicalDecision(access.context.projectId, decisionId);
+      if (!decision) {
+        return reply
+          .code(404)
+          .send(problem('technical-decision-not-found', 404, 'Technical decision was not found.'));
+      }
+      return reply.send({ decision });
+    },
+  );
 }
 
 function requireFigureAccess(

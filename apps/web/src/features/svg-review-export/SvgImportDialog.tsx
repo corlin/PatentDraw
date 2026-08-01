@@ -19,7 +19,7 @@ export function SvgImportDialog({
     setSvgText(await file.text());
   }
 
-  async function loadFixture(version: 'v1' | 'v2') {
+  async function loadFixture(version: 'v1' | 'v2' | 'review-corrected') {
     const path = `/fixtures/pump-${version}.svg`;
     const response = await fetch(path);
     if (!response.ok) throw new Error(`无法读取 ${path}`);
@@ -38,6 +38,11 @@ export function SvgImportDialog({
         <button type="button" onClick={() => void loadFixture('v2')}>
           载入泵 v2 修正版
         </button>
+        {currentRevisionId && (
+          <button type="button" onClick={() => void loadFixture('review-corrected')}>
+            载入技术退回修正版
+          </button>
+        )}
       </div>
       <label className="file-control">
         选择 SVG 文件

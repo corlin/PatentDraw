@@ -4,7 +4,7 @@ import { WorkflowShell } from './features/svg-review-export/WorkflowShell.js';
 import './styles.css';
 
 export function PatentDrawApp() {
-  return <WorkflowShell />;
+  return <WorkflowShell enableDemoActorSwitch />;
 }
 
 const rootElement = document.getElementById('root');

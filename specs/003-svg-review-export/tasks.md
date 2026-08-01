@@ -89,17 +89,17 @@ each story checkpoint for an independent demonstration.
 
 ### Tests for User Story 2
 
-- [ ] T033 [P] [US2] Add failing technical-decision and per-finding-disposition contract cases in `tests/contract/svg-review-export.contract.test.ts`
-- [ ] T034 [P] [US2] Add failing author self-review, wrong-role, stale-candidate, missing-disposition, return and approval cases in `tests/integration/review-approval.integration.test.ts`
-- [ ] T035 [P] [US2] Add failing technical-review panel and waiting-state component cases in `apps/web/src/features/svg-review-export/TechnicalReviewPanel.test.tsx`
+- [X] T033 [P] [US2] Add failing technical-decision and per-finding-disposition contract cases in `tests/contract/svg-review-export.contract.test.ts`
+- [X] T034 [P] [US2] Add failing author self-review, wrong-role, stale-candidate, missing-disposition, return and approval cases in `tests/integration/review-approval.integration.test.ts`
+- [X] T035 [P] [US2] Add failing technical-review panel and waiting-state component cases in `apps/web/src/features/svg-review-export/TechnicalReviewPanel.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T036 [US2] Implement export-candidate creation and immutable technical decisions with complete manual-finding dispositions in `apps/api/src/modules/svg-review-export/review-service.ts`
-- [ ] T037 [US2] Add export-candidate and technical-decision routes with actor/fingerprint/ETag gates in `apps/api/src/modules/svg-review-export/routes.ts`
-- [ ] T038 [P] [US2] Build the technical review, per-finding disposition and return-for-change UI in `apps/web/src/features/svg-review-export/TechnicalReviewPanel.tsx` and `apps/web/src/features/svg-review-export/FindingDispositionForm.tsx`
-- [ ] T039 [P] [US2] Render authenticated actor/active-role identity and waiting-for-review boundaries in `apps/web/src/features/svg-review-export/RoleBoundaryNotice.tsx` and `apps/web/src/main.tsx`
-- [ ] T040 [US2] Run and record the P2 three-actor boundary and return/approve acceptance in `specs/003-svg-review-export/p2-acceptance.md`
+- [X] T036 [US2] Implement export-candidate creation and immutable technical decisions with complete manual-finding dispositions in `apps/api/src/modules/svg-review-export/review-service.ts`
+- [X] T037 [US2] Add export-candidate and technical-decision routes with actor/fingerprint/ETag gates in `apps/api/src/modules/svg-review-export/routes.ts`
+- [X] T038 [P] [US2] Build the technical review, per-finding disposition and return-for-change UI in `apps/web/src/features/svg-review-export/TechnicalReviewPanel.tsx` and `apps/web/src/features/svg-review-export/FindingDispositionForm.tsx`
+- [X] T039 [P] [US2] Render authenticated actor/active-role identity and waiting-for-review boundaries in `apps/web/src/features/svg-review-export/RoleBoundaryNotice.tsx` and `apps/web/src/main.tsx`
+- [X] T040 [US2] Run and record the P2 three-actor boundary and return/approve acceptance in `specs/003-svg-review-export/p2-acceptance.md`
 
 **Checkpoint**: The technical-review stage is operable only by the distinct reviewer and produces an immutable, exact-candidate decision.
 

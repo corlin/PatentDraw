@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   DraftJob,
+  ExportCandidate,
   FigurePlanItemDisposition,
   FigurePlanResult,
   FigureRevision,
   RuleRun,
   SvgSanitizationRun,
+  TechnicalReviewDecision,
+  TechnicalReviewDecisionRequest,
   WorkflowSnapshot,
 } from '@patentdraw/contracts';
 
@@ -23,33 +26,50 @@ import {
 } from '../ai-figure-plan/api-client.js';
 import { FindingOverlay } from './FindingOverlay.js';
 import { NextActionCard } from './NextActionCard.js';
+import { RoleBoundaryNotice } from './RoleBoundaryNotice.js';
 import { RuleRunPanel } from './RuleRunPanel.js';
 import { SanitizationReport } from './SanitizationReport.js';
 import { SvgImportDialog } from './SvgImportDialog.js';
 import { SvgRevisionPanel } from './SvgRevisionPanel.js';
+import { TechnicalReviewPanel } from './TechnicalReviewPanel.js';
 import { WorkflowRail } from './WorkflowRail.js';
 import {
   WorkflowApiProblem,
+  DEMO_WORKFLOW_ACTORS,
+  type DemoWorkflowActorId,
+  createExportCandidate,
   createRevision,
   listRevisions,
   listRuleRuns,
+  loadExportCandidate,
   loadRevision,
   loadRevisionSvg,
   loadRuleRun,
+  loadTechnicalDecision,
   loadWorkflow,
   runRules,
   selectRevision,
+  submitTechnicalDecision,
 } from './workflow-api-client.js';
 
 const sourceHash = `sha256:${'1'.repeat(64)}`;
 
-export function WorkflowShell() {
+export function WorkflowShell({
+  enableDemoActorSwitch = false,
+}: {
+  enableDemoActorSwitch?: boolean;
+}) {
+  const [activeActorId, setActiveActorId] = useState<DemoWorkflowActorId>(
+    DEMO_WORKFLOW_ACTORS.drafter,
+  );
   const [workflow, setWorkflow] = useState<WorkflowSnapshot>();
   const [revision, setRevision] = useState<FigureRevision>();
   const [revisionHistory, setRevisionHistory] = useState<readonly FigureRevision[]>([]);
   const [sanitizationRun, setSanitizationRun] = useState<SvgSanitizationRun>();
   const [ruleRun, setRuleRun] = useState<RuleRun>();
   const [ruleRunHistory, setRuleRunHistory] = useState<readonly RuleRun[]>([]);
+  const [candidate, setCandidate] = useState<ExportCandidate>();
+  const [technicalDecision, setTechnicalDecision] = useState<TechnicalReviewDecision>();
   const [canonicalSvg, setCanonicalSvg] = useState('');
   const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -60,26 +80,47 @@ export function WorkflowShell() {
   const [dispositions, setDispositions] = useState<Record<string, FigurePlanItemDisposition>>({});
   const [draftJob, setDraftJob] = useState<DraftJob>();
   const importPanelRef = useRef<HTMLDivElement>(null);
+  const reviewPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const snapshot = await loadWorkflow();
+        const snapshot = await loadWorkflow(activeActorId);
         if (cancelled) return;
         setWorkflow(snapshot);
         setMessage('项目状态已读取；页面加载没有创建 AI 运行或写侧审计。');
         if (snapshot.current.revisionId) {
-          const loaded = await loadRevision(snapshot.current.revisionId);
+          const loaded = await loadRevision(snapshot.current.revisionId, activeActorId);
           if (cancelled) return;
           setRevision(loaded.revision);
           setSanitizationRun(loaded.sanitizationRun);
-          setCanonicalSvg(await loadRevisionSvg(loaded.revision.id));
-          setRevisionHistory(await listRevisions());
+          setCanonicalSvg(await loadRevisionSvg(loaded.revision.id, activeActorId));
+          setRevisionHistory(await listRevisions(activeActorId));
+        } else {
+          setRevision(undefined);
+          setSanitizationRun(undefined);
+          setCanonicalSvg('');
+          setRevisionHistory([]);
         }
         if (snapshot.current.ruleRunId) {
-          setRuleRun(await loadRuleRun(snapshot.current.ruleRunId));
-          setRuleRunHistory(await listRuleRuns());
+          setRuleRun(await loadRuleRun(snapshot.current.ruleRunId, activeActorId));
+          setRuleRunHistory(await listRuleRuns(activeActorId));
+        } else {
+          setRuleRun(undefined);
+          setRuleRunHistory([]);
+        }
+        if (snapshot.current.candidateId) {
+          setCandidate(await loadExportCandidate(snapshot.current.candidateId, activeActorId));
+        } else {
+          setCandidate(undefined);
+        }
+        if (snapshot.current.technicalDecisionId) {
+          setTechnicalDecision(
+            await loadTechnicalDecision(snapshot.current.technicalDecisionId, activeActorId),
+          );
+        } else {
+          setTechnicalDecision(undefined);
         }
       } catch (caught) {
         if (!cancelled) setError(errorMessage(caught));
@@ -88,7 +129,7 @@ export function WorkflowShell() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeActorId]);
 
   const findings = ruleRun?.findings ?? [];
   const selectedFinding = useMemo(
@@ -116,6 +157,7 @@ export function WorkflowShell() {
           sheet: { standard: 'A4', widthMm: 210, heightMm: 297, orientation: 'portrait' },
         },
         `revision:${filename}:${Date.now()}`,
+        activeActorId,
       );
       setSanitizationRun(created.sanitizationRun);
       if (created.status === 'rejected' || !created.revision) {
@@ -130,12 +172,15 @@ export function WorkflowShell() {
         },
         created.workflow,
         `selection:${created.revision.id}`,
+        activeActorId,
       );
       setWorkflow(selected.workflow);
       setRevision(created.revision);
-      setRevisionHistory(await listRevisions());
-      setCanonicalSvg(await loadRevisionSvg(created.revision.id));
+      setRevisionHistory(await listRevisions(activeActorId));
+      setCanonicalSvg(await loadRevisionSvg(created.revision.id, activeActorId));
       setRuleRun(undefined);
+      setCandidate(undefined);
+      setTechnicalDecision(undefined);
       setSelectedFindingId(undefined);
       setMessage(`已创建并选择修订 ${created.revision.id}。`);
     } catch (caught) {
@@ -159,15 +204,74 @@ export function WorkflowShell() {
         },
         workflow,
         `rule-run:${revision.id}:${Date.now()}`,
+        activeActorId,
       );
       setWorkflow(result.workflow);
       setRuleRun(result.run);
-      setRuleRunHistory(await listRuleRuns());
+      setRuleRunHistory(await listRuleRuns(activeActorId));
       setSelectedFindingId(result.run.findings[0]?.id);
       setMessage(
         result.run.summary.fail > 0
           ? '规则运行完成：存在阻断项，请创建后继修订。'
           : '规则运行完成：没有 fail；警告和人工判断仍需后续复核。',
+      );
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCreateCandidate() {
+    if (!workflow || !revision || !ruleRun) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const result = await createExportCandidate(
+        {
+          revisionId: revision.id,
+          revisionHash: revision.canonicalSvgHash,
+          revisionFingerprint: revision.revisionFingerprint,
+          ruleRunId: ruleRun.id,
+          ruleProfileHash: ruleRun.profileHash,
+          exportSettings: {
+            format: 'sanitized-svg-master',
+            textState: revision.textState === 'outlined-text' ? 'outlined-text' : 'live-text',
+          },
+        },
+        workflow,
+        `candidate:${revision.id}:${ruleRun.id}`,
+        activeActorId,
+      );
+      setCandidate(result.candidate);
+      setTechnicalDecision(undefined);
+      setWorkflow(result.workflow);
+      setMessage('送审候选已绑定到精确修订和规则运行；等待独立技术复核。');
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleTechnicalDecision(request: TechnicalReviewDecisionRequest) {
+    if (!workflow || !candidate) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const result = await submitTechnicalDecision(
+        candidate.id,
+        request,
+        workflow,
+        `technical:${candidate.id}:${request.decision}:${Date.now()}`,
+        activeActorId,
+      );
+      setTechnicalDecision(result.decision);
+      setWorkflow(result.workflow);
+      setMessage(
+        result.decision.decision === 'return-for-change'
+          ? '技术复核已不可变退回；请由制图人创建后继修订。'
+          : '技术结构对应已批准；代理人审批仍是后续独立边界。',
       );
     } catch (caught) {
       setError(errorMessage(caught));
@@ -281,6 +385,10 @@ export function WorkflowShell() {
 
   function primaryAction(action: WorkflowSnapshot['primaryAction']['action']) {
     if (action === 'run-checks') void handleRunRules();
+    if (action === 'create-export-candidate') void handleCreateCandidate();
+    if (action === 'technical-approve' || action === 'technical-return') {
+      reviewPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     if (action === 'import-revision' || action === 'create-revision') {
       importPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -302,7 +410,7 @@ export function WorkflowShell() {
           <strong>PatentDraw</strong>
         </div>
         <span className="top-divider" />
-        <div className="project-title">离心泵纵向剖视图 · P1</div>
+        <div className="project-title">离心泵纵向剖视图 · P2</div>
         <div className="profile-chip">{revision?.initialRuleProfile.id ?? 'CNIPA-2026.1'}</div>
         <div className="actor-chip">
           {workflow.actor.id} · {workflow.actor.activeRole}
@@ -351,6 +459,11 @@ export function WorkflowShell() {
           </div>
         )}
         <NextActionCard action={workflow.primaryAction} busy={busy} onAction={primaryAction} />
+
+        <RoleBoundaryNotice
+          workflow={workflow}
+          {...(enableDemoActorSwitch ? { activeActorId, onActorChange: setActiveActorId } : {})}
+        />
 
         <details className="upstream-panel">
           <summary>上游 FigurePlan 与 AI 草图（显式操作）</summary>
@@ -463,6 +576,23 @@ export function WorkflowShell() {
           history={ruleRunHistory}
           onSelectFinding={setSelectedFindingId}
         />
+        <div ref={reviewPanelRef}>
+          {candidate && ruleRun && (
+            <TechnicalReviewPanel
+              key={candidate.id}
+              candidate={candidate}
+              ruleRun={ruleRun}
+              decision={technicalDecision}
+              canReview={
+                workflow.actor.activeRole === 'technical-reviewer' &&
+                workflow.primaryAction.action === 'technical-approve' &&
+                workflow.primaryAction.availability === 'enabled'
+              }
+              busy={busy}
+              onSubmit={(request) => void handleTechnicalDecision(request)}
+            />
+          )}
+        </div>
       </aside>
     </main>
   );

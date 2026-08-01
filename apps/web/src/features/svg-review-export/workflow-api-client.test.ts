@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createRevision, loadWorkflow } from './workflow-api-client.js';
+import type { WorkflowSnapshot } from '@patentdraw/contracts';
+
+import {
+  DEMO_WORKFLOW_ACTORS,
+  createExportCandidate,
+  createRevision,
+  loadWorkflow,
+  submitTechnicalDecision,
+} from './workflow-api-client.js';
 
 describe('SVG workflow API client', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -47,6 +55,52 @@ describe('SVG workflow API client', () => {
     await expect(loadWorkflow()).rejects.toMatchObject({
       status,
       problem: expect.objectContaining({ detail: 'A bounded fixture problem.' }),
+    });
+  });
+
+  it('binds candidate and technical-decision commands to actor identity and ETag', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({}));
+    vi.stubGlobal('fetch', fetchMock);
+    const workflow = workflowFixture() as WorkflowSnapshot;
+    const hash = `sha256:${'a'.repeat(64)}` as const;
+    await createExportCandidate(
+      {
+        revisionId: 'revision-01',
+        revisionHash: hash,
+        revisionFingerprint: hash,
+        ruleRunId: 'run-01',
+        ruleProfileHash: hash,
+        exportSettings: { format: 'sanitized-svg-master', textState: 'live-text' },
+      },
+      workflow,
+      'candidate-key-01',
+    );
+    await submitTechnicalDecision(
+      'candidate-01',
+      {
+        candidateFingerprint: hash,
+        decision: 'approve-structural-correspondence',
+        reason: 'Reviewed.',
+        findingDispositions: [],
+      },
+      workflow,
+      'technical-key-01',
+      DEMO_WORKFLOW_ACTORS.technicalReviewer,
+    );
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('/export-candidates');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'if-match': 'workflow:0',
+        'idempotency-key': 'candidate-key-01',
+        'x-patentdraw-actor-id': DEMO_WORKFLOW_ACTORS.drafter,
+      }),
+    });
+    expect(fetchMock.mock.calls[1]?.[0]).toContain('/technical-decisions');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'idempotency-key': 'technical-key-01',
+        'x-patentdraw-actor-id': DEMO_WORKFLOW_ACTORS.technicalReviewer,
+      }),
     });
   });
 });

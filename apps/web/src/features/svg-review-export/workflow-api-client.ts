@@ -1,10 +1,14 @@
 import type {
   CandidateSelectionRequest,
+  CreateExportCandidateRequest,
   CreateFigureRevisionRequest,
   CreateRuleRunRequest,
+  ExportCandidate,
   FigureRevision,
   RuleRun,
   SvgSanitizationRun,
+  TechnicalReviewDecision,
+  TechnicalReviewDecisionRequest,
   WorkflowProblem,
   WorkflowSnapshot,
 } from '@patentdraw/contracts';
@@ -12,6 +16,12 @@ import type {
 export const DEMO_WORKFLOW_PROJECT_ID = 'project-fixture-pump';
 export const DEMO_WORKFLOW_FIGURE_ID = 'figure-fixture-pump-01';
 export const DEMO_WORKFLOW_ACTOR_ID = 'drafter-fixture-01';
+export const DEMO_WORKFLOW_ACTORS = {
+  drafter: DEMO_WORKFLOW_ACTOR_ID,
+  technicalReviewer: 'technical-reviewer-fixture-01',
+  attorneyAgent: 'attorney-fixture-01',
+} as const;
+export type DemoWorkflowActorId = (typeof DEMO_WORKFLOW_ACTORS)[keyof typeof DEMO_WORKFLOW_ACTORS];
 
 const base = `/api/projects/${DEMO_WORKFLOW_PROJECT_ID}/figures/${DEMO_WORKFLOW_FIGURE_ID}`;
 
@@ -32,64 +42,98 @@ export interface RevisionCommandResponse {
   workflow: WorkflowSnapshot;
 }
 
-export function loadWorkflow(): Promise<WorkflowSnapshot> {
-  return requestJson(`${base}/workflow`, { method: 'GET' });
+export function loadWorkflow(
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<WorkflowSnapshot> {
+  return requestJson(`${base}/workflow`, { method: 'GET' }, actorId);
 }
 
-export async function loadRevision(revisionId: string): Promise<{
+export async function loadRevision(
+  revisionId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<{
   revision: FigureRevision;
   sanitizationRun: SvgSanitizationRun;
 }> {
-  return requestJson(`${base}/revisions/${encodeURIComponent(revisionId)}`, { method: 'GET' });
+  return requestJson(
+    `${base}/revisions/${encodeURIComponent(revisionId)}`,
+    { method: 'GET' },
+    actorId,
+  );
 }
 
-export async function loadRevisionSvg(revisionId: string): Promise<string> {
+export async function loadRevisionSvg(
+  revisionId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<string> {
   const response = await fetch(`${base}/revisions/${encodeURIComponent(revisionId)}/svg`, {
     method: 'GET',
-    headers: identityHeaders(),
+    headers: identityHeaders(actorId),
   });
   if (!response.ok) throw await responseProblem(response);
   return response.text();
 }
 
-export async function listRevisions(): Promise<readonly FigureRevision[]> {
-  const result = await requestJson<{ revisions: readonly FigureRevision[] }>(`${base}/revisions`, {
-    method: 'GET',
-  });
+export async function listRevisions(
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<readonly FigureRevision[]> {
+  const result = await requestJson<{ revisions: readonly FigureRevision[] }>(
+    `${base}/revisions`,
+    {
+      method: 'GET',
+    },
+    actorId,
+  );
   return result.revisions;
 }
 
-export async function listRuleRuns(): Promise<readonly RuleRun[]> {
-  const result = await requestJson<{ ruleRuns: readonly RuleRun[] }>(`${base}/rule-runs`, {
-    method: 'GET',
-  });
+export async function listRuleRuns(
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<readonly RuleRun[]> {
+  const result = await requestJson<{ ruleRuns: readonly RuleRun[] }>(
+    `${base}/rule-runs`,
+    {
+      method: 'GET',
+    },
+    actorId,
+  );
   return result.ruleRuns;
 }
 
 export function createRevision(
   request: CreateFigureRevisionRequest,
   idempotencyKey: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
 ): Promise<RevisionCommandResponse> {
-  return requestJson(`${base}/revisions`, {
-    method: 'POST',
-    headers: { 'idempotency-key': idempotencyKey },
-    body: JSON.stringify(request),
-  });
+  return requestJson(
+    `${base}/revisions`,
+    {
+      method: 'POST',
+      headers: { 'idempotency-key': idempotencyKey },
+      body: JSON.stringify(request),
+    },
+    actorId,
+  );
 }
 
 export function selectRevision(
   request: CandidateSelectionRequest,
   workflow: WorkflowSnapshot,
   idempotencyKey: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
 ): Promise<{ workflow: WorkflowSnapshot }> {
-  return requestJson(`${base}/candidate-selections`, {
-    method: 'POST',
-    headers: {
-      'if-match': workflow.etag,
-      'idempotency-key': idempotencyKey,
+  return requestJson(
+    `${base}/candidate-selections`,
+    {
+      method: 'POST',
+      headers: {
+        'if-match': workflow.etag,
+        'idempotency-key': idempotencyKey,
+      },
+      body: JSON.stringify(request),
     },
-    body: JSON.stringify(request),
-  });
+    actorId,
+  );
 }
 
 export function runRules(
@@ -97,30 +141,102 @@ export function runRules(
   request: CreateRuleRunRequest,
   workflow: WorkflowSnapshot,
   idempotencyKey: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
 ): Promise<{ run: RuleRun; workflow: WorkflowSnapshot }> {
-  return requestJson(`${base}/revisions/${encodeURIComponent(revisionId)}/rule-runs`, {
-    method: 'POST',
-    headers: {
-      'if-match': workflow.etag,
-      'idempotency-key': idempotencyKey,
+  return requestJson(
+    `${base}/revisions/${encodeURIComponent(revisionId)}/rule-runs`,
+    {
+      method: 'POST',
+      headers: {
+        'if-match': workflow.etag,
+        'idempotency-key': idempotencyKey,
+      },
+      body: JSON.stringify(request),
     },
-    body: JSON.stringify(request),
-  });
+    actorId,
+  );
 }
 
-export async function loadRuleRun(ruleRunId: string): Promise<RuleRun> {
+export async function loadRuleRun(
+  ruleRunId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<RuleRun> {
   const result = await requestJson<{ run: RuleRun }>(
     `${base}/rule-runs/${encodeURIComponent(ruleRunId)}`,
     { method: 'GET' },
+    actorId,
   );
   return result.run;
 }
 
-async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
+export function createExportCandidate(
+  request: CreateExportCandidateRequest,
+  workflow: WorkflowSnapshot,
+  idempotencyKey: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<{ candidate: ExportCandidate; workflow: WorkflowSnapshot }> {
+  return requestJson(
+    `${base}/export-candidates`,
+    {
+      method: 'POST',
+      headers: { 'if-match': workflow.etag, 'idempotency-key': idempotencyKey },
+      body: JSON.stringify(request),
+    },
+    actorId,
+  );
+}
+
+export async function loadExportCandidate(
+  candidateId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<ExportCandidate> {
+  const result = await requestJson<{ candidate: ExportCandidate }>(
+    `${base}/export-candidates/${encodeURIComponent(candidateId)}`,
+    { method: 'GET' },
+    actorId,
+  );
+  return result.candidate;
+}
+
+export function submitTechnicalDecision(
+  candidateId: string,
+  request: TechnicalReviewDecisionRequest,
+  workflow: WorkflowSnapshot,
+  idempotencyKey: string,
+  actorId: DemoWorkflowActorId,
+): Promise<{ decision: TechnicalReviewDecision; workflow: WorkflowSnapshot }> {
+  return requestJson(
+    `${base}/export-candidates/${encodeURIComponent(candidateId)}/technical-decisions`,
+    {
+      method: 'POST',
+      headers: { 'if-match': workflow.etag, 'idempotency-key': idempotencyKey },
+      body: JSON.stringify(request),
+    },
+    actorId,
+  );
+}
+
+export async function loadTechnicalDecision(
+  decisionId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<TechnicalReviewDecision> {
+  const result = await requestJson<{ decision: TechnicalReviewDecision }>(
+    `${base}/technical-decisions/${encodeURIComponent(decisionId)}`,
+    { method: 'GET' },
+    actorId,
+  );
+  return result.decision;
+}
+
+async function requestJson<T>(
+  path: string,
+  init: RequestInit,
+  actorId: DemoWorkflowActorId,
+): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: {
-      ...identityHeaders(),
+      ...identityHeaders(actorId),
       ...(init.body ? { 'content-type': 'application/json' } : {}),
       ...(init.headers ?? {}),
     },
@@ -143,9 +259,9 @@ async function responseProblem(response: Response): Promise<WorkflowApiProblem> 
   });
 }
 
-function identityHeaders(): Record<string, string> {
+function identityHeaders(actorId: DemoWorkflowActorId): Record<string, string> {
   return {
     'x-patentdraw-project-id': DEMO_WORKFLOW_PROJECT_ID,
-    'x-patentdraw-actor-id': DEMO_WORKFLOW_ACTOR_ID,
+    'x-patentdraw-actor-id': actorId,
   };
 }
