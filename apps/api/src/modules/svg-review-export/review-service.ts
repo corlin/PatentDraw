@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import type {
+  AttorneyApprovalDecision,
+  AttorneyApprovalDecisionRequest,
   CreateExportCandidateRequest,
   ExportCandidate,
   RuleRun,
@@ -10,6 +12,7 @@ import type {
 
 import type { ProjectContext } from '../projects-assets/source-authorisation.js';
 import { WorkflowCommandError } from './problems.js';
+import { assessCnipaEfilingEvidence } from './cnipa-evidence-service.js';
 import {
   StaleWorkflowError,
   type SvgWorkflowRepository,
@@ -89,6 +92,15 @@ export async function createExportCandidate(input: {
   }
 
   const exportSettingsHash = hashCanonical(input.request.exportSettings);
+  const cnipaAssessment = ruleRun.profileId.startsWith('CNIPA')
+    ? await assessCnipaEfilingEvidence({
+        repository: input.repository,
+        projectId: input.context.projectId,
+        revisionId: revision.id,
+        revisionHash: revision.canonicalSvgHash,
+        ...(input.request.cnipaEvidenceId ? { evidenceId: input.request.cnipaEvidenceId } : {}),
+      })
+    : { label: 'not-applicable' as const };
   const createdAt = (input.now ?? (() => new Date()))().toISOString();
   const base = {
     projectId: input.context.projectId,
@@ -103,9 +115,10 @@ export async function createExportCandidate(input: {
     exportSettings: structuredClone(input.request.exportSettings),
     exportSettingsHash,
     cnipaAssessment: {
-      label: ruleRun.profileId.startsWith('CNIPA')
-        ? ('not-CNIPA-electronic-submission-ready' as const)
-        : ('not-applicable' as const),
+      label: cnipaAssessment.label,
+      ...('evidenceId' in cnipaAssessment && cnipaAssessment.evidenceId
+        ? { evidenceId: cnipaAssessment.evidenceId }
+        : {}),
     },
   };
   const candidate: ExportCandidate = {
@@ -258,6 +271,160 @@ export async function submitTechnicalReviewDecision(input: {
   return { decision, projection };
 }
 
+export async function submitAttorneyApprovalDecision(input: {
+  repository: SvgWorkflowRepository;
+  context: ProjectContext;
+  figureId: string;
+  candidateId: string;
+  expectedVersion: number;
+  request: AttorneyApprovalDecisionRequest;
+  decisionId?: string;
+  now?: () => Date;
+}): Promise<{ decision: AttorneyApprovalDecision; projection: WorkflowProjectionRecord }> {
+  assertAttorneyAgent(input.context);
+  const current = await currentProjection(input);
+  if (current.currentCandidateId !== input.candidateId) {
+    throw new WorkflowCommandError(
+      'current-candidate-mismatch',
+      409,
+      'The export candidate changed; reload before recording attorney approval.',
+    );
+  }
+  if (current.currentTechnicalDecisionId !== input.request.technicalDecisionId) {
+    throw new WorkflowCommandError(
+      'technical-decision-mismatch',
+      409,
+      'The technical decision changed; reload before recording attorney approval.',
+    );
+  }
+  const [candidate, technicalDecision] = await Promise.all([
+    input.repository.getExportCandidate(input.context.projectId, input.candidateId),
+    input.repository.getTechnicalDecision(
+      input.context.projectId,
+      input.request.technicalDecisionId,
+    ),
+  ]);
+  if (!candidate || candidate.figureId !== input.figureId) {
+    throw new WorkflowCommandError(
+      'export-candidate-not-found',
+      404,
+      'Export candidate was not found.',
+    );
+  }
+  if (!technicalDecision || technicalDecision.candidateId !== candidate.id) {
+    throw new WorkflowCommandError(
+      'technical-decision-not-found',
+      404,
+      'The bound technical decision was not found.',
+    );
+  }
+  if (
+    candidate.candidateFingerprint !== input.request.candidateFingerprint ||
+    technicalDecision.candidateFingerprint !== candidate.candidateFingerprint
+  ) {
+    throw new WorkflowCommandError(
+      'candidate-fingerprint-mismatch',
+      409,
+      'The export candidate fingerprint is stale.',
+    );
+  }
+  if (technicalDecision.decision !== 'approve-structural-correspondence') {
+    throw new WorkflowCommandError(
+      'technical-approval-required',
+      409,
+      'A current technical approval is required before attorney approval.',
+    );
+  }
+  const revision = await input.repository.getRevision(
+    input.context.projectId,
+    candidate.revisionId,
+  );
+  if (!revision) {
+    throw new WorkflowCommandError(
+      'candidate-evidence-not-found',
+      404,
+      'The candidate revision was not found.',
+    );
+  }
+  if (revision.createdByActorId === input.context.actorId) {
+    throw new WorkflowCommandError(
+      'revision-author-cannot-attorney-approve',
+      403,
+      'The canonical revision author cannot provide its attorney approval.',
+    );
+  }
+  if (technicalDecision.actorId === input.context.actorId) {
+    throw new WorkflowCommandError(
+      'technical-reviewer-cannot-attorney-approve',
+      403,
+      'The technical reviewer cannot also provide attorney approval.',
+    );
+  }
+  if (input.context.relationships.some((item) => ['inventor', 'contributor'].includes(item))) {
+    throw new WorkflowCommandError(
+      'inventor-or-contributor-cannot-approve',
+      403,
+      'An inventor or contributor relationship cannot provide attorney approval.',
+    );
+  }
+  if (input.request.reason.trim().length === 0) {
+    throw new WorkflowCommandError(
+      'attorney-approval-reason-required',
+      422,
+      'An approval reason is required.',
+    );
+  }
+  const acknowledged = [...new Set(input.request.acknowledgedWarningFindingIds)].sort();
+  const required = [...candidate.warningFindingIds].sort();
+  if (
+    input.request.decision === 'approve-export' &&
+    (acknowledged.length !== required.length ||
+      acknowledged.some((id, index) => id !== required[index]))
+  ) {
+    throw new WorkflowCommandError(
+      'warning-acknowledgment-incomplete',
+      422,
+      'Every current warning must be acknowledged exactly once before export approval.',
+    );
+  }
+
+  const decidedAt = (input.now ?? (() => new Date()))().toISOString();
+  const decision: AttorneyApprovalDecision = {
+    id: input.decisionId ?? `attorney-decision:${randomUUID()}`,
+    candidateId: candidate.id,
+    candidateFingerprint: candidate.candidateFingerprint,
+    technicalDecisionId: technicalDecision.id,
+    decision: input.request.decision,
+    reason: input.request.reason.trim(),
+    acknowledgedWarningFindingIds: acknowledged,
+    actorId: input.context.actorId,
+    activeRole: 'attorney-agent',
+    decidedAt,
+  };
+  await input.repository.saveAttorneyDecision(decision, input.context.projectId);
+  const projection = await input.repository.compareAndSwapProjection({
+    expectedVersion: input.expectedVersion,
+    next: { ...withoutVersion(current), currentAttorneyDecisionId: decision.id },
+  });
+  await recordWorkflowCommandOutcome(input.repository, {
+    projectId: input.context.projectId,
+    figureId: input.figureId,
+    eventType:
+      decision.decision === 'approve-export'
+        ? 'attorney-export-approved'
+        : 'attorney-export-rejected',
+    actorId: input.context.actorId,
+    activeRole: input.context.activeRole,
+    targetIds: [candidate.id, technicalDecision.id, decision.id, ...acknowledged],
+    outcome: 'accepted',
+    reasonCode: decision.decision,
+    reason: decision.reason,
+    fingerprints: { candidate: candidate.candidateFingerprint },
+    occurredAt: decidedAt,
+  });
+  return { decision, projection };
+}
+
 function validateTechnicalDecision(
   request: TechnicalReviewDecisionRequest,
   requiredFindingIds: readonly string[],
@@ -340,6 +507,16 @@ function assertTechnicalReviewer(context: ProjectContext): void {
       'technical-reviewer-role-required',
       403,
       'An assigned active technical-reviewer role is required.',
+    );
+  }
+}
+
+function assertAttorneyAgent(context: ProjectContext): void {
+  if (context.activeRole !== 'attorney-agent' || !context.roles.includes('attorney-agent')) {
+    throw new WorkflowCommandError(
+      'attorney-agent-role-required',
+      403,
+      'An assigned active attorney-agent role is required.',
     );
   }
 }

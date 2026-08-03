@@ -216,6 +216,10 @@ export class PostgresSvgWorkflowRepository implements SvgWorkflowRepository {
     return this.readPayload('svg_export_packages', projectId, id);
   }
 
+  listExportPackages(projectId: string, figureId: string): Promise<readonly ExportPackage[]> {
+    return this.listPayloads('svg_export_packages', projectId, figureId, 'created_at');
+  }
+
   async savePackageSupersession(record: ExportPackageSupersessionRecord): Promise<void> {
     await this.withFigure(record.projectId, record.figureId, (client) =>
       client.query(
@@ -342,7 +346,7 @@ export class PostgresSvgWorkflowRepository implements SvgWorkflowRepository {
   }
 
   private async listPayloads<T>(
-    table: 'svg_figure_revisions' | 'svg_rule_runs',
+    table: 'svg_figure_revisions' | 'svg_rule_runs' | 'svg_export_packages',
     projectId: string,
     figureId: string,
     orderColumn: 'created_at',

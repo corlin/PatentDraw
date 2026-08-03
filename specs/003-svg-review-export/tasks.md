@@ -113,21 +113,21 @@ each story checkpoint for an independent demonstration.
 
 ### Tests for User Story 3
 
-- [ ] T041 [P] [US3] Validate manifest examples and required limitation labels against `specs/003-svg-review-export/contracts/export-manifest.schema.json` in `tests/contract/svg-export-manifest.contract.test.ts`
-- [ ] T042 [P] [US3] Add failing attorney separation, warning acknowledgment, export gate, idempotent retry and hash-mismatch cases in `tests/integration/svg-export.integration.test.ts`
-- [ ] T043 [P] [US3] Add failing CNIPA absent, complete, mismatched-revision and missing-attestation cases in `tests/integration/cnipa-efiling-evidence.integration.test.ts`
-- [ ] T044 [P] [US3] Add failing attorney-approval and manifest-preview component cases in `apps/web/src/features/svg-review-export/ExportPanels.test.tsx`
+- [x] T041 [P] [US3] Validate manifest examples and required limitation labels against `specs/003-svg-review-export/contracts/export-manifest.schema.json` in `tests/contract/svg-export-manifest.contract.test.ts`
+- [x] T042 [P] [US3] Add failing attorney separation, warning acknowledgment, export gate, idempotent retry and hash-mismatch cases in `tests/integration/svg-export.integration.test.ts`
+- [x] T043 [P] [US3] Add failing CNIPA absent, complete, mismatched-revision and missing-attestation cases in `tests/integration/cnipa-efiling-evidence.integration.test.ts`
+- [x] T044 [P] [US3] Add failing attorney-approval and manifest-preview component cases in `apps/web/src/features/svg-review-export/ExportPanels.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T045 [P] [US3] Add complete and invalid CNIPA evidence fixtures plus export manifest fixtures in `packages/fixtures/src/svg-review-export.ts`
-- [ ] T046 [US3] Implement validated external CNIPA evidence records and limited readiness assessment in `apps/api/src/modules/svg-review-export/cnipa-evidence-service.ts`
-- [ ] T047 [US3] Extend immutable attorney approval, distinct-actor enforcement and warning acknowledgment in `apps/api/src/modules/svg-review-export/review-service.ts`
-- [ ] T048 [US3] Implement canonical manifest generation, SVG/manifest reread verification, package commit and idempotent retry in `apps/api/src/modules/svg-review-export/export-service.ts`
-- [ ] T049 [US3] Add CNIPA evidence, attorney-decision, package creation and artifact download routes in `apps/api/src/modules/svg-review-export/routes.ts`
-- [ ] T050 [P] [US3] Build attorney approval and warning/CNIPA acknowledgment UI in `apps/web/src/features/svg-review-export/AttorneyApprovalPanel.tsx`
-- [ ] T051 [P] [US3] Build export gate, manifest preview and immutable package history/download UI in `apps/web/src/features/svg-review-export/ExportGatePanel.tsx`, `apps/web/src/features/svg-review-export/ManifestPreview.tsx` and `apps/web/src/features/svg-review-export/ExportHistory.tsx`
-- [ ] T052 [US3] Run and record SVG/manifest hash verification and CNIPA-boundary acceptance in `specs/003-svg-review-export/p3-acceptance.md`
+- [x] T045 [P] [US3] Add complete and invalid CNIPA evidence fixtures plus export manifest fixtures in `packages/fixtures/src/svg-review-export.ts`
+- [x] T046 [US3] Implement validated external CNIPA evidence records and limited readiness assessment in `apps/api/src/modules/svg-review-export/cnipa-evidence-service.ts`
+- [x] T047 [US3] Extend immutable attorney approval, distinct-actor enforcement and warning acknowledgment in `apps/api/src/modules/svg-review-export/review-service.ts`
+- [x] T048 [US3] Implement canonical manifest generation, SVG/manifest reread verification, package commit and idempotent retry in `apps/api/src/modules/svg-review-export/export-service.ts`
+- [x] T049 [US3] Add CNIPA evidence, attorney-decision, package creation and artifact download routes in `apps/api/src/modules/svg-review-export/routes.ts`
+- [x] T050 [P] [US3] Build attorney approval and warning/CNIPA acknowledgment UI in `apps/web/src/features/svg-review-export/AttorneyApprovalPanel.tsx`
+- [x] T051 [P] [US3] Build export gate, manifest preview and immutable package history/download UI in `apps/web/src/features/svg-review-export/ExportGatePanel.tsx`, `apps/web/src/features/svg-review-export/ManifestPreview.tsx` and `apps/web/src/features/svg-review-export/ExportHistory.tsx`
+- [x] T052 [US3] Run and record SVG/manifest hash verification and CNIPA-boundary acceptance in `specs/003-svg-review-export/p3-acceptance.md`
 
 **Checkpoint**: A third actor can export only the exact approved candidate; every successful package has matching artifacts and no office-readiness claim.
 

@@ -56,6 +56,7 @@ export interface SvgWorkflowRepository {
   getCnipaEvidence(projectId: string, id: string): Promise<CnipaEfilingEvidence | null>;
   saveExportPackage(record: ExportPackage): Promise<void>;
   getExportPackage(projectId: string, id: string): Promise<ExportPackage | null>;
+  listExportPackages(projectId: string, figureId: string): Promise<readonly ExportPackage[]>;
   savePackageSupersession(record: ExportPackageSupersessionRecord): Promise<void>;
   saveAuditEvents(events: readonly WorkflowAuditEvent[]): Promise<void>;
   listAuditEvents(projectId: string, figureId?: string): Promise<readonly WorkflowAuditEvent[]>;
@@ -188,6 +189,12 @@ export class InMemorySvgWorkflowRepository implements SvgWorkflowRepository {
 
   async getExportPackage(projectId: string, id: string): Promise<ExportPackage | null> {
     return this.read(this.packages, projectId, id);
+  }
+
+  async listExportPackages(projectId: string, figureId: string): Promise<readonly ExportPackage[]> {
+    return this.list(this.packages, projectId, (record) => record.figureId === figureId).sort(
+      (left, right) => left.createdAt.localeCompare(right.createdAt),
+    );
   }
 
   async savePackageSupersession(record: ExportPackageSupersessionRecord): Promise<void> {

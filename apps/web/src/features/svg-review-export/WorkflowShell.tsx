@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
+  AttorneyApprovalDecision,
+  AttorneyApprovalDecisionRequest,
   DraftJob,
   ExportCandidate,
+  ExportManifest,
+  ExportPackage,
   FigurePlanItemDisposition,
   FigurePlanResult,
   FigureRevision,
@@ -25,6 +29,10 @@ import {
   submitDemoFigurePlanDispositions,
 } from '../ai-figure-plan/api-client.js';
 import { FindingOverlay } from './FindingOverlay.js';
+import { AttorneyApprovalPanel } from './AttorneyApprovalPanel.js';
+import { ExportGatePanel } from './ExportGatePanel.js';
+import { ExportHistory } from './ExportHistory.js';
+import { ManifestPreview } from './ManifestPreview.js';
 import { NextActionCard } from './NextActionCard.js';
 import { RoleBoundaryNotice } from './RoleBoundaryNotice.js';
 import { RuleRunPanel } from './RuleRunPanel.js';
@@ -38,10 +46,15 @@ import {
   DEMO_WORKFLOW_ACTORS,
   type DemoWorkflowActorId,
   createExportCandidate,
+  createExportPackage,
   createRevision,
   listRevisions,
+  listExportPackages,
   listRuleRuns,
   loadExportCandidate,
+  loadAttorneyDecision,
+  loadExportManifest,
+  loadExportPackage,
   loadRevision,
   loadRevisionSvg,
   loadRuleRun,
@@ -50,6 +63,7 @@ import {
   runRules,
   selectRevision,
   submitTechnicalDecision,
+  submitAttorneyDecision,
 } from './workflow-api-client.js';
 
 const sourceHash = `sha256:${'1'.repeat(64)}`;
@@ -70,6 +84,10 @@ export function WorkflowShell({
   const [ruleRunHistory, setRuleRunHistory] = useState<readonly RuleRun[]>([]);
   const [candidate, setCandidate] = useState<ExportCandidate>();
   const [technicalDecision, setTechnicalDecision] = useState<TechnicalReviewDecision>();
+  const [attorneyDecision, setAttorneyDecision] = useState<AttorneyApprovalDecision>();
+  const [exportPackage, setExportPackage] = useState<ExportPackage>();
+  const [exportManifest, setExportManifest] = useState<ExportManifest>();
+  const [exportHistory, setExportHistory] = useState<readonly ExportPackage[]>([]);
   const [canonicalSvg, setCanonicalSvg] = useState('');
   const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -122,6 +140,25 @@ export function WorkflowShell({
         } else {
           setTechnicalDecision(undefined);
         }
+        if (snapshot.current.attorneyDecisionId) {
+          setAttorneyDecision(
+            await loadAttorneyDecision(snapshot.current.attorneyDecisionId, activeActorId),
+          );
+        } else {
+          setAttorneyDecision(undefined);
+        }
+        if (snapshot.current.exportPackageId) {
+          const loadedPackage = await loadExportPackage(
+            snapshot.current.exportPackageId,
+            activeActorId,
+          );
+          setExportPackage(loadedPackage);
+          setExportManifest(await loadExportManifest(loadedPackage.id, activeActorId));
+        } else {
+          setExportPackage(undefined);
+          setExportManifest(undefined);
+        }
+        setExportHistory(await listExportPackages(activeActorId));
       } catch (caught) {
         if (!cancelled) setError(errorMessage(caught));
       }
@@ -181,6 +218,9 @@ export function WorkflowShell({
       setRuleRun(undefined);
       setCandidate(undefined);
       setTechnicalDecision(undefined);
+      setAttorneyDecision(undefined);
+      setExportPackage(undefined);
+      setExportManifest(undefined);
       setSelectedFindingId(undefined);
       setMessage(`已创建并选择修订 ${created.revision.id}。`);
     } catch (caught) {
@@ -245,6 +285,9 @@ export function WorkflowShell({
       );
       setCandidate(result.candidate);
       setTechnicalDecision(undefined);
+      setAttorneyDecision(undefined);
+      setExportPackage(undefined);
+      setExportManifest(undefined);
       setWorkflow(result.workflow);
       setMessage('送审候选已绑定到精确修订和规则运行；等待独立技术复核。');
     } catch (caught) {
@@ -267,12 +310,66 @@ export function WorkflowShell({
         activeActorId,
       );
       setTechnicalDecision(result.decision);
+      setAttorneyDecision(undefined);
+      setExportPackage(undefined);
+      setExportManifest(undefined);
       setWorkflow(result.workflow);
       setMessage(
         result.decision.decision === 'return-for-change'
           ? '技术复核已不可变退回；请由制图人创建后继修订。'
           : '技术结构对应已批准；代理人审批仍是后续独立边界。',
       );
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAttorneyDecision(request: AttorneyApprovalDecisionRequest) {
+    if (!workflow || !candidate) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const result = await submitAttorneyDecision(
+        candidate.id,
+        request,
+        workflow,
+        `attorney:${candidate.id}:${request.decision}:${Date.now()}`,
+        activeActorId,
+      );
+      setAttorneyDecision(result.decision);
+      setWorkflow(result.workflow);
+      setMessage(
+        result.decision.decision === 'approve-export'
+          ? '代理人已独立批准当前候选；现在可生成哈希绑定的 SVG 与清单。'
+          : '代理人已不可变拒绝当前候选。',
+      );
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCreateExport() {
+    if (!workflow || !candidate || !technicalDecision || !attorneyDecision) return;
+    setBusy(true);
+    setError(undefined);
+    try {
+      const result = await createExportPackage(
+        candidate,
+        technicalDecision.id,
+        attorneyDecision.id,
+        workflow,
+        `export:${candidate.id}:${attorneyDecision.id}`,
+        activeActorId,
+      );
+      setExportPackage(result.package);
+      setExportManifest(result.manifest);
+      setWorkflow(result.workflow);
+      setExportHistory(await listExportPackages(activeActorId));
+      setMessage('SVG 与规范化清单已通过双哈希复验并写入不可变导出历史。');
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -389,6 +486,10 @@ export function WorkflowShell({
     if (action === 'technical-approve' || action === 'technical-return') {
       reviewPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+    if (action === 'attorney-approve' || action === 'attorney-reject') {
+      reviewPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    if (action === 'create-export') void handleCreateExport();
     if (action === 'import-revision' || action === 'create-revision') {
       importPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -410,7 +511,7 @@ export function WorkflowShell({
           <strong>PatentDraw</strong>
         </div>
         <span className="top-divider" />
-        <div className="project-title">离心泵纵向剖视图 · P2</div>
+        <div className="project-title">离心泵纵向剖视图 · P3</div>
         <div className="profile-chip">{revision?.initialRuleProfile.id ?? 'CNIPA-2026.1'}</div>
         <div className="actor-chip">
           {workflow.actor.id} · {workflow.actor.activeRole}
@@ -592,6 +693,38 @@ export function WorkflowShell({
               onSubmit={(request) => void handleTechnicalDecision(request)}
             />
           )}
+          {candidate &&
+            technicalDecision?.decision === 'approve-structural-correspondence' &&
+            !attorneyDecision && (
+              <AttorneyApprovalPanel
+                key={`${candidate.id}:attorney`}
+                candidate={candidate}
+                technicalDecision={technicalDecision}
+                canApprove={
+                  workflow.actor.activeRole === 'attorney-agent' &&
+                  workflow.primaryAction.action === 'attorney-approve' &&
+                  workflow.primaryAction.availability === 'enabled'
+                }
+                busy={busy}
+                onSubmit={(request) => void handleAttorneyDecision(request)}
+              />
+            )}
+          {candidate && technicalDecision && attorneyDecision?.decision === 'approve-export' && (
+            <ExportGatePanel
+              candidate={candidate}
+              attorneyDecisionId={attorneyDecision.id}
+              packageRecord={exportPackage}
+              busy={busy}
+              canExport={
+                workflow.actor.activeRole === 'attorney-agent' &&
+                workflow.primaryAction.action === 'create-export' &&
+                workflow.primaryAction.availability === 'enabled'
+              }
+              onExport={() => void handleCreateExport()}
+            />
+          )}
+          {exportManifest && <ManifestPreview manifest={exportManifest} />}
+          <ExportHistory packages={exportHistory} />
         </div>
       </aside>
     </main>

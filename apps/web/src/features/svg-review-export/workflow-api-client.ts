@@ -1,9 +1,13 @@
 import type {
+  AttorneyApprovalDecision,
+  AttorneyApprovalDecisionRequest,
   CandidateSelectionRequest,
   CreateExportCandidateRequest,
   CreateFigureRevisionRequest,
   CreateRuleRunRequest,
   ExportCandidate,
+  ExportManifest,
+  ExportPackage,
   FigureRevision,
   RuleRun,
   SvgSanitizationRun,
@@ -226,6 +230,93 @@ export async function loadTechnicalDecision(
     actorId,
   );
   return result.decision;
+}
+
+export function submitAttorneyDecision(
+  candidateId: string,
+  request: AttorneyApprovalDecisionRequest,
+  workflow: WorkflowSnapshot,
+  idempotencyKey: string,
+  actorId: DemoWorkflowActorId,
+): Promise<{ decision: AttorneyApprovalDecision; workflow: WorkflowSnapshot }> {
+  return requestJson(
+    `${base}/export-candidates/${encodeURIComponent(candidateId)}/attorney-decisions`,
+    {
+      method: 'POST',
+      headers: { 'if-match': workflow.etag, 'idempotency-key': idempotencyKey },
+      body: JSON.stringify(request),
+    },
+    actorId,
+  );
+}
+
+export async function loadAttorneyDecision(
+  decisionId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<AttorneyApprovalDecision> {
+  const result = await requestJson<{ decision: AttorneyApprovalDecision }>(
+    `${base}/attorney-decisions/${encodeURIComponent(decisionId)}`,
+    { method: 'GET' },
+    actorId,
+  );
+  return result.decision;
+}
+
+export function createExportPackage(
+  candidate: ExportCandidate,
+  technicalDecisionId: string,
+  attorneyDecisionId: string,
+  workflow: WorkflowSnapshot,
+  idempotencyKey: string,
+  actorId: DemoWorkflowActorId,
+): Promise<{ package: ExportPackage; manifest: ExportManifest; workflow: WorkflowSnapshot }> {
+  return requestJson(
+    `${base}/export-candidates/${encodeURIComponent(candidate.id)}/export-packages`,
+    {
+      method: 'POST',
+      headers: { 'if-match': workflow.etag, 'idempotency-key': idempotencyKey },
+      body: JSON.stringify({
+        candidateFingerprint: candidate.candidateFingerprint,
+        technicalDecisionId,
+        attorneyDecisionId,
+      }),
+    },
+    actorId,
+  );
+}
+
+export async function loadExportPackage(
+  packageId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<ExportPackage> {
+  const result = await requestJson<{ package: ExportPackage }>(
+    `${base}/export-packages/${encodeURIComponent(packageId)}`,
+    { method: 'GET' },
+    actorId,
+  );
+  return result.package;
+}
+
+export async function loadExportManifest(
+  packageId: string,
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<ExportManifest> {
+  return requestJson(
+    `${base}/export-packages/${encodeURIComponent(packageId)}/manifest`,
+    { method: 'GET' },
+    actorId,
+  );
+}
+
+export async function listExportPackages(
+  actorId: DemoWorkflowActorId = DEMO_WORKFLOW_ACTOR_ID,
+): Promise<readonly ExportPackage[]> {
+  const result = await requestJson<{ packages: readonly ExportPackage[] }>(
+    `${base}/export-packages`,
+    { method: 'GET' },
+    actorId,
+  );
+  return result.packages;
 }
 
 async function requestJson<T>(

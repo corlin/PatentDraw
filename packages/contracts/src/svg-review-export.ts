@@ -213,6 +213,7 @@ export const CreateExportCandidateRequestSchema = Type.Object({
     format: Type.Literal('sanitized-svg-master'),
     textState: Type.Union([Type.Literal('live-text'), Type.Literal('outlined-text')]),
   }),
+  cnipaEvidenceId: Type.Optional(Type.String({ minLength: 1 })),
 });
 
 export const ExportCandidateSchema = Type.Object({
@@ -292,6 +293,16 @@ export const AttorneyApprovalDecisionSchema = Type.Object({
   actorId: Type.String({ minLength: 1 }),
   activeRole: Type.Literal('attorney-agent'),
   decidedAt: IsoDateTimeSchema,
+});
+
+export const AttorneyApprovalDecisionRequestSchema = Type.Object({
+  candidateFingerprint: Sha256Schema,
+  technicalDecisionId: Type.String({ minLength: 1 }),
+  decision: Type.Union([Type.Literal('approve-export'), Type.Literal('reject-export')]),
+  reason: Type.String({ minLength: 1 }),
+  acknowledgedWarningFindingIds: Type.Array(Type.String({ minLength: 1 }), {
+    uniqueItems: true,
+  }),
 });
 
 export const WorkflowStateSchema = Type.Union([
@@ -442,6 +453,37 @@ export const CnipaEfilingEvidenceSchema = Type.Object({
   recordedAt: IsoDateTimeSchema,
 });
 
+export const CreateCnipaEfilingEvidenceRequestSchema = Type.Object({
+  applicationDate: LocalDateSchema,
+  declaredRoute: Type.Union([
+    Type.Literal('standard'),
+    Type.Literal('priority-examination'),
+    Type.Literal('fast-examination'),
+    Type.Literal('pph'),
+    Type.Literal('delayed-examination'),
+    Type.Literal('concentrated-examination'),
+    Type.Literal('pct-national-phase'),
+  ]),
+  policyEffectiveDate: LocalDateSchema,
+  linkedRevisions: Type.Array(
+    Type.Object({ revisionId: Type.String({ minLength: 1 }), canonicalSvgHash: Sha256Schema }),
+    { minItems: 1 },
+  ),
+  xmlPackageHash: Sha256Schema,
+  converter: Type.Object({
+    tool: Type.String({ minLength: 1 }),
+    version: Type.String({ minLength: 1 }),
+  }),
+  dataStandardVersion: Type.String({ minLength: 1 }),
+  previewProofreadAttestation: Type.Object({
+    confirmed: Type.Boolean(),
+    actorId: Type.String({ minLength: 1 }),
+    confirmedAt: IsoDateTimeSchema,
+  }),
+  reviewedByActorId: Type.String({ minLength: 1 }),
+  reviewedAt: IsoDateTimeSchema,
+});
+
 export const ExportPackageSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
   projectId: Type.String({ minLength: 1 }),
@@ -462,6 +504,61 @@ export const ExportPackageSchema = Type.Object({
   createdByActorId: Type.String({ minLength: 1 }),
   createdAt: IsoDateTimeSchema,
 });
+
+export const CreateExportPackageRequestSchema = Type.Object({
+  candidateFingerprint: Sha256Schema,
+  technicalDecisionId: Type.String({ minLength: 1 }),
+  attorneyDecisionId: Type.String({ minLength: 1 }),
+});
+
+export interface ExportManifest {
+  schemaVersion: 'patentdraw-export-manifest/1';
+  packageId: string;
+  candidateFingerprint: Sha256;
+  projectId: string;
+  figureId: string;
+  revision: {
+    id: string;
+    canonicalSvgHash: Sha256;
+    parentRevisionId?: string;
+    sourceLinks: Array<{ id: string; hash: Sha256 }>;
+  };
+  sheet: {
+    standard: 'A4' | 'US-Letter';
+    widthMm: number;
+    heightMm: number;
+    viewBox: [number, number, number, number];
+  };
+  textState: 'live-text' | 'outlined-text' | 'mixed';
+  ruleRun: {
+    id: string;
+    profileId: string;
+    profileVersion: string;
+    profileHash: Sha256;
+    warnings: Array<{ findingId: string; ruleId: string; summary: string }>;
+  };
+  review: { technicalDecisionId: string; attorneyDecisionId: string };
+  cnipa: {
+    label:
+      'not-applicable' | 'not-CNIPA-electronic-submission-ready' | 'CNIPA-XML-evidence-recorded';
+    evidenceId?: string;
+    limitation: string;
+  };
+  artifacts: Array<{
+    path: 'figure.svg';
+    mediaType: 'image/svg+xml';
+    sha256: Sha256;
+    byteLength: number;
+  }>;
+  export: { actorId: string; occurredAt: string };
+  limitations: Array<
+    | 'reviewed-drawing-asset'
+    | 'not-an-office-filing-event'
+    | 'no-office-acceptance-assertion'
+    | 'not-CNIPA-electronic-submission-ready'
+    | 'CNIPA-XML-evidence-recorded'
+  >;
+}
 
 export const WorkflowAuditEventSchema = Type.Object({
   id: Type.String({ minLength: 1 }),
@@ -514,6 +611,7 @@ export type FindingDisposition = Static<typeof FindingDispositionSchema>;
 export type TechnicalReviewDecisionRequest = Static<typeof TechnicalReviewDecisionRequestSchema>;
 export type TechnicalReviewDecision = Static<typeof TechnicalReviewDecisionSchema>;
 export type AttorneyApprovalDecision = Static<typeof AttorneyApprovalDecisionSchema>;
+export type AttorneyApprovalDecisionRequest = Static<typeof AttorneyApprovalDecisionRequestSchema>;
 export type WorkflowState = Static<typeof WorkflowStateSchema>;
 export type WorkflowActionName = Static<typeof WorkflowActionNameSchema>;
 export type BlockingGate = Static<typeof BlockingGateSchema>;
@@ -521,6 +619,10 @@ export type WorkflowAction = Static<typeof WorkflowActionSchema>;
 export type WorkflowSnapshot = Static<typeof WorkflowSnapshotSchema>;
 export type WorkflowInvalidation = Static<typeof WorkflowInvalidationSchema>;
 export type CnipaEfilingEvidence = Static<typeof CnipaEfilingEvidenceSchema>;
+export type CreateCnipaEfilingEvidenceRequest = Static<
+  typeof CreateCnipaEfilingEvidenceRequestSchema
+>;
 export type ExportPackage = Static<typeof ExportPackageSchema>;
+export type CreateExportPackageRequest = Static<typeof CreateExportPackageRequestSchema>;
 export type WorkflowAuditEvent = Static<typeof WorkflowAuditEventSchema>;
 export type WorkflowProblem = Static<typeof WorkflowProblemSchema>;
